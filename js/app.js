@@ -395,14 +395,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function hideNoSourceMsg(){ noSourceMsgEl?.classList.add('hidden'); }
 
   // Copy to clipboard
-  copyCodeBtn?.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(state.currentSourceText || '');
-      setStatus('Source copied to clipboard');
-    } catch (err) {
-      setStatus('Failed to copy source');
-    }
-  });
+    copyCodeBtn?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(state.currentSourceText || '');
+        const prev = copyCodeBtn.textContent;
+        copyCodeBtn.textContent = 'Copied!';
+        copyCodeBtn.classList.add('copy-success');
+        setTimeout(() => {
+          copyCodeBtn.textContent = prev || 'Copy';
+          copyCodeBtn.classList.remove('copy-success');
+        }, 1500);
+      } catch (err) {
+        setStatus('Failed to copy source');
+      }
+    });
 
   // Close code panel
   closeCodeBtn?.addEventListener('click', () => {

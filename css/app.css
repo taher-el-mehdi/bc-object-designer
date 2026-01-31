@@ -179,6 +179,10 @@ body {
 .tbarbtn:hover, button:hover { background: var(--primary-600); }
 .tbarbtn:focus, button:focus { outline: none; box-shadow: var(--focus); }
 
+/* Success state for copy button */
+.tbarbtn.copy-success { background: #22c55e; color: #062532; }
+.tbarbtn.copy-success:hover { background: #22c55e; }
+
 input[type="text"], input[type="file"] { 
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
   padding: 6px 8px; border-radius: 6px; font-size: 12px;
