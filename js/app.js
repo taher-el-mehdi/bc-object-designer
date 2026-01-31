@@ -41,10 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const layoutModalEl = document.getElementById('layoutModal');
     const layoutCloseBtn = document.getElementById('layoutCloseBtn');
     const layoutToggleBtn = document.getElementById('layoutToggleBtn');
+    const layoutFsBtn = document.getElementById('layoutFsBtn');
     const layoutModalTitleEl = document.getElementById('layoutModalTitle');
     const layoutContainerEl = document.getElementById('layoutContainer');
     const layoutLoadingMsgEl = document.getElementById('layoutLoadingMsg');
     const viewLayoutBtn = document.getElementById('viewLayoutBtn');
+    const layoutModalContentEl = layoutModalEl?.querySelector('.modal-content');
+    const layoutModalBodyEl = layoutModalEl?.querySelector('.modal-body');
   const appSettingsCloseBtn = document.getElementById('appSettingsCloseBtn');
   const copyAppInfoModalBtn = document.getElementById('copyAppInfoModalBtn');
   const appNameValEl = document.getElementById('appNameVal');
@@ -725,9 +728,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isInFullscreen()) await enterDiagramFullscreen(); else await exitDiagramFullscreen();
     }
   });
-  // Cleanup styles on fullscreen exit
+  // Cleanup styles on fullscreen change, specific to the element in fullscreen
   document.addEventListener('fullscreenchange', () => {
-    if (isInFullscreen()) {
+    const fsEl = document.fullscreenElement;
+    // ER modal handling
+    if (fsEl === erModalContentEl) {
       if (erDiagramFsBtn) erDiagramFsBtn.textContent = 'Normal view';
       if (erModalFooterEl) erModalFooterEl.classList.add('hidden');
     } else {
@@ -747,8 +752,71 @@ document.addEventListener('DOMContentLoaded', () => {
         erDiagramContainerEl.style.height = '';
       }
       if (erDiagramFsBtn) erDiagramFsBtn.textContent = 'Fullscreen';
-      // Restore footer when exiting fullscreen
       if (erModalFooterEl) erModalFooterEl.classList.remove('hidden');
+    }
+
+    // Layout modal handling
+    if (fsEl === layoutModalContentEl) {
+      if (layoutFsBtn) layoutFsBtn.textContent = 'Normal view';
+    } else {
+      if (layoutModalContentEl){
+        layoutModalContentEl.style.width = '';
+        layoutModalContentEl.style.height = '';
+        layoutModalContentEl.style.margin = '';
+        layoutModalContentEl.classList.remove('fullscreen');
+      }
+      if (layoutModalBodyEl) {
+        layoutModalBodyEl.style.flex = '';
+        layoutModalBodyEl.style.display = '';
+        layoutModalBodyEl.style.flexDirection = '';
+      }
+      if (layoutContainerEl) {
+        layoutContainerEl.style.flex = '';
+        layoutContainerEl.style.height = '';
+      }
+      // Restore rdl viewport height when exiting fullscreen
+      const rdlViewport = layoutContainerEl?.querySelector('.rdl-viewport');
+      if (rdlViewport) rdlViewport.style.height = '';
+      if (layoutFsBtn) layoutFsBtn.textContent = 'Fullscreen';
+    }
+  });
+
+  // Layout fullscreen helpers
+  async function enterLayoutFullscreen(){
+    try {
+      if (layoutModalContentEl?.requestFullscreen) {
+        await layoutModalContentEl.requestFullscreen();
+        layoutModalContentEl.style.width = '100vw';
+        layoutModalContentEl.style.height = '100vh';
+        layoutModalContentEl.style.margin = '0';
+        layoutModalContentEl.classList.add('fullscreen');
+        if (layoutModalBodyEl) {
+          layoutModalBodyEl.style.flex = '1 1 auto';
+          layoutModalBodyEl.style.display = 'flex';
+          layoutModalBodyEl.style.flexDirection = 'column';
+        }
+        if (layoutContainerEl) {
+          layoutContainerEl.style.flex = '1 1 auto';
+          layoutContainerEl.style.height = '100%';
+        }
+        const rdlViewport = layoutContainerEl?.querySelector('.rdl-viewport');
+        if (rdlViewport) rdlViewport.style.height = '100%';
+        if (layoutFsBtn) layoutFsBtn.textContent = 'Normal view';
+      }
+    } catch {}
+  }
+  async function exitLayoutFullscreen(){
+    try { if (document.exitFullscreen) await document.exitFullscreen(); } catch {}
+  }
+  layoutFsBtn?.addEventListener('click', async () => {
+    if (!document.fullscreenElement) await enterLayoutFullscreen(); else await exitLayoutFullscreen();
+  });
+  // Keyboard F11 toggle while layout modal is open
+  window.addEventListener('keydown', async (e) => {
+    if (layoutModalEl?.classList.contains('hidden')) return;
+    if (e.key === 'F11'){
+      e.preventDefault();
+      if (!document.fullscreenElement) await enterLayoutFullscreen(); else await exitLayoutFullscreen();
     }
   });
 
