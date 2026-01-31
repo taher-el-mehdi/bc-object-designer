@@ -236,3 +236,14 @@ input[type="text"]:focus, input[type="file"]:focus { outline: none; box-shadow: 
 
 /* Utility */
 .hidden { display: none !important; }
+
+/* Global search */
+.globalsearch { display:flex; align-items:center; gap:8px; margin-left: 16px; }
+.search-input { width: 360px; max-width: 42vw; }
+.search-clear { background: var(--hover); color: var(--text); border: 1px solid var(--border); }
+.search-clear:hover { filter: brightness(0.95); }
+
+/* Table header variants */
+.object-table thead th.col-type { width: 28%; }
+.object-table thead th.col-id { width: 14%; }
+.object-table thead th.col-name { width: auto; }

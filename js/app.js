@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeCodeBtn = document.getElementById('closeCodeBtn');
   const landingOverlayEl = document.getElementById('landingOverlay');
   const overlayUploadBtn = document.getElementById('overlayUploadBtn');
+  const globalSearchEl = document.getElementById('globalSearch');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
 
   function setStatus(text){ document.getElementById('status').textContent = text; }
 
@@ -25,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const versionEl = document.getElementById('toolVersion');
   if (versionEl) { versionEl.textContent = `bc-object-designer v: ${APP_VERSION}`; }
 
-  let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '' };
+  let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false };
 
   function updateAppInfo(raw){
     const name = raw && (raw.Name || raw.name) || '';
@@ -105,11 +107,148 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Table header management
+  function setTableHeaders(mode){
+    const thead = objectTableEl?.querySelector('thead');
+    if (!thead) return;
+    const tr = thead.querySelector('tr');
+    if (!tr) return;
+    tr.innerHTML = '';
+    if (mode === 'search'){
+      const thType = document.createElement('th'); thType.textContent = 'Type'; thType.className = 'col-type';
+      const thId = document.createElement('th'); thId.textContent = 'ID'; thId.className = 'col-id';
+      const thName = document.createElement('th'); thName.textContent = 'Name'; thName.className = 'col-name';
+      tr.appendChild(thType); tr.appendChild(thId); tr.appendChild(thName);
+    } else {
+      const thId = document.createElement('th'); thId.textContent = 'ID'; thId.className = 'col-id';
+      const thName = document.createElement('th'); thName.textContent = 'Name'; thName.className = 'col-name';
+      tr.appendChild(thId); tr.appendChild(thName);
+    }
+  }
+
+  // Render global search results across all objects
+  function renderSearchResults(query){
+    const tbody = objectTableEl?.querySelector('tbody');
+    if (!tbody) return;
+    const q = (query || '').trim();
+    state.searchQuery = q;
+    state.searchActive = !!q.length;
+    if (!state.searchActive){
+      // Restore normal view
+      setTableHeaders('normal');
+      selectedTypeNameEl.textContent = state.selectedType || 'No type selected';
+      renderObjectList(state.selectedType || '');
+      return;
+    }
+
+    // Prepare headers and message
+    setTableHeaders('search');
+    selectedTypeNameEl.textContent = `Search results`;
+    tbody.innerHTML = '';
+
+    // Determine matching strategy (ID, range, name)
+    const digitsOnly = /^\d+$/.test(q);
+    const rangeMatch = q.match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+    const results = [];
+    if (digitsOnly){
+      const idNum = Number(q);
+      for (const o of (state.objects || [])){
+        if (o.id === idNum) results.push(o);
+      }
+    } else if (rangeMatch){
+      const from = Number(rangeMatch[1]);
+      const to = Number(rangeMatch[2]);
+      const lo = Math.min(from, to), hi = Math.max(from, to);
+      for (const o of (state.objects || [])){
+        if (typeof o.id === 'number' && o.id >= lo && o.id <= hi) results.push(o);
+      }
+    } else {
+      const ql = q.toLowerCase();
+      for (const o of (state.objects || [])){
+        const name = String(o.name || '').toLowerCase();
+        const type = String(o.type || '').toLowerCase();
+        if (name.includes(ql) || type.includes(ql)) results.push(o);
+      }
+    }
+
+    if (!results.length){
+      objectTableEl.classList.add('hidden');
+      emptyListMsgEl.textContent = 'No matching objects for this search.';
+      emptyListMsgEl.classList.remove('hidden');
+      hideCodePanel();
+      return;
+    }
+
+    objectTableEl.classList.remove('hidden');
+    emptyListMsgEl.classList.add('hidden');
+    const frag = document.createDocumentFragment();
+    for (const o of results){
+      const tr = document.createElement('tr');
+      tr.tabIndex = 0;
+      tr.dataset.type = String(o.type || '');
+      tr.dataset.id = String(o.id ?? '');
+      const tdType = document.createElement('td'); tdType.textContent = o.type || '';
+      const tdId = document.createElement('td'); tdId.textContent = o.id != null ? String(o.id) : '';
+      const tdName = document.createElement('td'); tdName.textContent = o.name || '';
+      tr.appendChild(tdType); tr.appendChild(tdId); tr.appendChild(tdName);
+      tr.addEventListener('click', () => openCodeForObject(o.type, o.id));
+      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter') openCodeForObject(o.type, o.id); });
+      frag.appendChild(tr);
+    }
+    tbody.appendChild(frag);
+  }
+
+  // Debounce helper
+  function debounce(fn, wait){
+    let t; return function(...args){ clearTimeout(t); t = setTimeout(() => fn.apply(this, args), wait); };
+  }
+
+  const onSearchInput = debounce(() => {
+    const val = globalSearchEl?.value || '';
+    renderSearchResults(val);
+  }, 200);
+
+  globalSearchEl?.addEventListener('input', onSearchInput);
+  globalSearchEl?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      globalSearchEl.value = '';
+      renderSearchResults('');
+      e.preventDefault();
+    }
+    if (e.key === 'Enter') {
+      renderSearchResults(globalSearchEl.value || '');
+      e.preventDefault();
+    }
+  });
+
+  clearSearchBtn?.addEventListener('click', () => {
+    if (!globalSearchEl) return;
+    globalSearchEl.value = '';
+    renderSearchResults('');
+    globalSearchEl.focus();
+  });
+
+  // Shortcut: Ctrl+K focuses search; '/' quick focus
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'k')){
+      globalSearchEl?.focus();
+      e.preventDefault();
+    }
+    if (!e.ctrlKey && !e.metaKey && e.key === '/'){
+      const tag = (document.activeElement?.tagName || '').toLowerCase();
+      if (tag !== 'input' && tag !== 'textarea'){
+        globalSearchEl?.focus();
+        e.preventDefault();
+      }
+    }
+  });
+
   // Render object list for a type
   function renderObjectList(type){
     const tbody = objectTableEl?.querySelector('tbody');
     if (!tbody || !Array.isArray(state.groups)) return;
     tbody.innerHTML = '';
+    setTableHeaders('normal');
     const group = state.groups.find(g => g.type === type);
     selectedTypeNameEl.textContent = group ? group.type : 'No type selected';
     if (!group || !Array.isArray(group.items) || group.items.length === 0){
@@ -139,6 +278,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function selectType(type){
+    if (state.searchActive){
+      if (globalSearchEl) globalSearchEl.value = '';
+      state.searchActive = false;
+      setTableHeaders('normal');
+    }
     state.selectedType = type;
     // Close any previously opened code view and clear prior selection
     hideCodePanel();
@@ -366,6 +510,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fileInput').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
     await processFile(file);
+    if (globalSearchEl) { globalSearchEl.value = ''; }
+    state.searchActive = false;
   });
 
   // Overlay interactions: click button to open file picker
