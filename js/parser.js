@@ -145,7 +145,8 @@ async function readSymbolsJson(file){
 
         const base = { id: mid, name: mname, caption: mcaption };
         if (/field/i.test(mkind) || /column/i.test(mkind)){
-          fields.push({ ...base, type: fieldType, relation: tableRelation });
+          const isFlowField = /flowfield/i.test(String(m.FieldClass || m.fieldClass || m.Class || '')) || !!(m.CalcFormula || m.calcFormula);
+          fields.push({ ...base, type: fieldType, relation: tableRelation, flowfield: isFlowField });
           if (tableRelation) relations.push({ field: mname, relation: tableRelation });
         } else if (/action/i.test(mkind)){
           actions.push({ ...base });
@@ -482,6 +483,7 @@ async function readSymbolsJson(file){
    */
   async function parseAppFile(file){
     const { json: raw, zip } = await readSymbolsJson(file);
+    console.log(raw);
     let objects = [];
     // Prefer 'Symbols' arrays if present
     const arrays = [];

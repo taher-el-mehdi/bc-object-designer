@@ -1,4 +1,5 @@
 import { parseAppFile, groupByType } from './parser.js';
+import { showERDiagramAll } from './er-diagram.js';
 import { APP_VERSION } from './version.js';
 import { saveLastState, loadLastState, clearLastState, storageSupported } from './storage.js';
 import { generatePseudoAL } from './alsyntax.js';
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const noSourceMsgEl = document.getElementById('noSourceMsg');
   const listCodeResizerEl = document.getElementById('listCodeResizer');
   const copyCodeBtn = document.getElementById('copyCodeBtn');
+  const viewERAllBtn = document.getElementById('viewERAllBtn');
   const closeCodeBtn = document.getElementById('closeCodeBtn');
   const landingOverlayEl = document.getElementById('landingOverlay');
   const overlayUploadBtn = document.getElementById('overlayUploadBtn');
@@ -23,11 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const listWrapEl = document.querySelector('.listwrap');
   const settingsBtn = document.getElementById('settingsBtn');
   const appSettingsModalEl = document.getElementById('appSettingsModal');
+    const erDiagramModalEl = document.getElementById('erDiagramModal');
+    const erDiagramCloseBtn = document.getElementById('erDiagramCloseBtn');
+    const erDiagramContainerEl = document.getElementById('erDiagramContainer');
+    const erLoadingMsgEl = document.getElementById('erLoadingMsg');
+    const erDiagramTitleEl = document.getElementById('erDiagramTitle');
   const appSettingsCloseBtn = document.getElementById('appSettingsCloseBtn');
   const copyAppInfoModalBtn = document.getElementById('copyAppInfoModalBtn');
   const appNameValEl = document.getElementById('appNameVal');
   const appPublisherValEl = document.getElementById('appPublisherVal');
   const appVersionValEl = document.getElementById('appVersionVal');
+  const appRuntimeValEl = document.getElementById('appRuntimeVal');
   const appIdValEl = document.getElementById('appIdVal');
   const appFilenameValEl = document.getElementById('appFilenameVal');
   const appSymbolCountValEl = document.getElementById('appSymbolCountVal');
@@ -38,13 +46,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const versionEl = document.getElementById('toolVersion');
   if (versionEl) { versionEl.textContent = `bc-object-designer v: ${APP_VERSION}`; }
 
-  let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false };
+  let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false, currentObject: null };
+
+  // Attempt to extract RuntimeVersion from raw metadata
+  function extractRuntimeVersion(obj){
+    try {
+      const seen = new Set();
+      function walk(o){
+        if (!o || typeof o !== 'object') return undefined;
+        if (seen.has(o)) return undefined; seen.add(o);
+        for (const [k,v] of Object.entries(o)){
+          const kl = String(k).toLowerCase();
+          if (kl.includes('runtimeversion') || kl === 'runtime'){
+            if (typeof v === 'string') return v;
+            if (typeof v === 'number') return String(v);
+            if (v && typeof v === 'object'){
+              const maj = v.Major ?? v.major; const min = v.Minor ?? v.minor; const b = v.Build ?? v.build;
+              if (maj != null && min != null) return [maj, min, b].filter(x => x!=null).join('.');
+            }
+          }
+          const nested = (typeof v === 'object') ? walk(v) : undefined;
+          if (nested) return nested;
+        }
+        return undefined;
+      }
+      return walk(obj) || '';
+    } catch { return ''; }
+  }
 
   function updateAppInfo(raw){
     const name = raw && (raw.Name || raw.name) || '';
     const version = raw && (raw.Version || raw.version) || '';
     const publisher = raw && (raw.Publisher || raw.publisher) || '';
     const appId = raw && (raw.AppId || raw.appId || raw.AppID) || '';
+    const runtimeVersion = extractRuntimeVersion(raw);
     const hasAny = !!(name || version || publisher || appId);
 
     // Update centered uploaded app name
@@ -52,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (uploadedNameEl) uploadedNameEl.textContent = name || '';
 
     // Store app info and toggle copy button visibility
-    state.appInfo = hasAny ? { AppId: appId || undefined, Name: name || undefined, Publisher: publisher || undefined, Version: version || undefined } : null;
+    state.appInfo = hasAny ? { AppId: appId || undefined, Name: name || undefined, Publisher: publisher || undefined, Version: version || undefined, RuntimeVersion: runtimeVersion || undefined } : null;
     if (settingsBtn) settingsBtn.classList.toggle('hidden', !hasAny);
   }
 
@@ -302,6 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ensure the list scrolls to top when switching types
     const listWrap = objectTableEl?.closest('.listwrap');
     if (listWrap) listWrap.scrollTop = 0;
+    // Toggle global ER button only on Table type
+    viewERAllBtn?.classList.toggle('hidden', String(type) !== 'Table');
   }
 
   // Find object by type and id
@@ -330,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showCodePanel();
       return;
     }
+    state.currentObject = obj;
     codeTitleEl.textContent = `${obj.type || type}${obj.id!=null?` #${obj.id}`:''}${obj.name?` · ${obj.name}`:''}`;
     if (obj.sourceText){
       hideNoSourceMsg();
@@ -347,6 +385,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showCodePanel();
     // Scroll to top for new selection
     codeContentEl.scrollTop = 0;
+
+    // ER button is controlled at the list header when Table type is selected
   }
 
   async function ensureHighlighter() {
@@ -415,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (appNameValEl) appNameValEl.textContent = info.Name || '';
     if (appPublisherValEl) appPublisherValEl.textContent = info.Publisher || '';
     if (appVersionValEl) appVersionValEl.textContent = info.Version || '';
+    if (appRuntimeValEl) appRuntimeValEl.textContent = info.RuntimeVersion || '';
     if (appIdValEl) appIdValEl.textContent = info.AppId || '';
     if (appFilenameValEl) appFilenameValEl.textContent = state.filename || '';
     if (appSymbolCountValEl) appSymbolCountValEl.textContent = String((state.objects || []).length || 0);
@@ -446,6 +487,22 @@ document.addEventListener('DOMContentLoaded', () => {
     hideCodePanel();
     highlightSelectedRow('', '');
   });
+  // ER Diagram (global): open modal and render across all tables
+  viewERAllBtn?.addEventListener('click', async () => {
+    if (state.selectedType !== 'Table') return;
+    erLoadingMsgEl?.classList.remove('hidden');
+    erDiagramContainerEl.innerHTML = '';
+    if (erDiagramTitleEl) erDiagramTitleEl.textContent = 'ER Diagram · All Tables';
+    erDiagramModalEl?.classList.remove('hidden');
+    setTimeout(() => {
+      try {
+        showERDiagramAll(state.objects, erDiagramContainerEl);
+      } finally {
+        erLoadingMsgEl?.classList.add('hidden');
+      }
+    }, 30);
+  });
+  erDiagramCloseBtn?.addEventListener('click', () => { erDiagramModalEl?.classList.add('hidden'); });
 
   // Resizer logic (vertical split between list and code)
   (function initResizer(){

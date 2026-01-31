@@ -56,7 +56,9 @@
     <main id="mainPanel" class="mainpanel" aria-label="Object list">
       <div class="mainhdr">
         <div id="selectedTypeName" class="mainname">No type selected</div>
-        <div class="contcoltb"></div>
+        <div class="contcoltb">
+          <button id="viewERAllBtn" class="tbarbtn hidden" title="View ER diagram for all tables">View ER Diagram</button>
+        </div>
       </div>
       <div class="listwrap">
         <table id="objectTable" class="object-table" aria-label="Objects of selected type">
@@ -103,6 +105,7 @@
             <tr><td class="key">Name</td><td class="val" id="appNameVal"></td></tr>
             <tr><td class="key">Publisher</td><td class="val" id="appPublisherVal"></td></tr>
             <tr><td class="key">Version</td><td class="val" id="appVersionVal"></td></tr>
+            <tr><td class="key">Runtime Version</td><td class="val" id="appRuntimeVal"></td></tr>
             <tr><td class="key">App ID</td><td class="val" id="appIdVal"></td></tr>
             <tr><td class="key">Filename</td><td class="val" id="appFilenameVal"></td></tr>
             <tr><td class="key">Symbol count</td><td class="val" id="appSymbolCountVal"></td></tr>
@@ -111,6 +114,23 @@
       </div>
       <div class="modal-footer">
         <button id="copyAppInfoModalBtn" class="tbarbtn" title="Copy app info as JSON">Copy app info as JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ER Diagram Modal -->
+  <div id="erDiagramModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="erDiagramTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <div id="erDiagramTitle" class="modal-title">ER Diagram</div>
+        <button id="erDiagramCloseBtn" class="tbarbtn" title="Close diagram">Close</button>
+      </div>
+      <div class="modal-body">
+        <div id="erLoadingMsg" class="empty-msg">Generating diagram…</div>
+        <div id="erDiagramContainer" class="diagram-container" aria-label="Entity relationship diagram"></div>
+      </div>
+      <div class="modal-footer">
+        <span class="badge" title="Tips">Scroll to zoom · Drag to pan</span>
       </div>
     </div>
   </div>
