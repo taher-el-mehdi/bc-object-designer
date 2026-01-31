@@ -1,21 +1,14 @@
 # BC Object Designer
 
-A fast, zero-backend web tool to explore Microsoft Dynamics 365 Business Central `.app` packages: browse objects by type, inspect metadata, and view real AL source when available (with syntax highlighting and line numbers). Sessions persist locally via IndexedDB so you can pick up where you left off.
-
-## Features
-- Objects by type: Sidebar groups (Tables, Pages, Reports, Codeunits, Enums, …) with counts.
-- Object list + details: Select a type to see objects and open one to view its source.
-- Real AL source: Extracts `.al` files from the `.app` zip when available; smart mapping using `ReferenceSourceFileName`.
-- Pseudo‑AL fallback: Shows a readable outline when source is not included (ShowMyCode disabled).
-- Code viewer: Line numbers, sticky header, copy-to-clipboard, and resizable split.
-- Syntax highlighting: Lightweight AL tokenizer (comments, directives, attributes, keywords, types, numbers, strings). Single quotes and double quotes use distinct colors.
-- Persistence: Saves and auto-restores the last loaded app and UI selections using IndexedDB.
-- App info: Clean badges and a "Copy App Info JSON" button with success feedback.
-- Modern UI: Sticky sidebar and top bar, keyboard-friendly navigation, light/dark theme aware.
-
+Open a Business Central `.app` package and quickly browse objects (Tables, Pages, Reports, Codeunits, Enums, etc.). See details and source code.
+- Main: A centered upload panel appears. Drag & drop your `.app` file or click "Select .app file".
+- Navigation:
+	- Left: object types with counts.
+	- Main: list of objects. Click a row to open details.
+	- Bottom: code viewer with line numbers and colors (outline shown if source isn't included).
+- Actions:
+	- "Copy" to copy source, "Copy App Info JSON" for app metadata, "Clear cache" to reset.
+- Privacy: Runs entirely in your browser; your file stays on your machine.
 
 ## Contributing
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
-
-## License
-This project is licensed under the MIT License — see [LICENSE](LICENSE).

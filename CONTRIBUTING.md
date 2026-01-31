@@ -13,14 +13,6 @@ Thanks for your interest in improving the project! This guide helps you set up a
 - Keep functions short and readable; avoid global state beyond the central `state` in `app.js`.
 - Follow existing CSS variables and token classes; preserve dark/light compatibility.
 
-
-## How It Works
-- Parsing: Reads `SymbolReference.json` from the `.app` (zip) using JSZip and normalizes symbols with IDs, names, kinds, and optional `sourceText`.
-- Source extraction: Builds a map of `.al` files in the package. Tries `ReferenceSourceFileName` basename first; falls back to `<ObjectName>.al`.
-- Pseudo-AL: When no source is present, generates a concise AL outline for key object types.
-- Syntax highlighting: A tiny tokenizer renders per-line HTML with classes (keywords, types, strings, comments, etc.) and preserves block comments across lines. Single‑quoted strings are amber; double‑quoted strings are green.
-- Persistence: Stores last session (`filename`, `info`, `objects`) in IndexedDB; you can clear it with the “Clear cache” button.
-
 ## Project Structure
 - `index.html` – App shell and layout, loads ES module entry.
 - `css/app.css` – Theme, layout, code viewer, and token colors for light/dark modes.
