@@ -4,31 +4,167 @@ let __rdlStylesInjected = false;
 function ensureStyles() {
   if (__rdlStylesInjected) return;
   const css = `
-    .rdl-controls{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-bottom:8px}
-    .rdl-controls .btn{background:var(--primary);color:#fff;border:0;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer}
-    .rdl-controls .btn:hover{background:var(--primary-600)}
-    .rdl-controls .lbl{color:var(--muted);font-size:12px;margin:0 6px}
-    .rdl-viewport{height:60vh;min-height:320px;overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:12px}
-    .page{background:#fff;margin:0 auto 20px;box-shadow:0 4px 20px rgba(0,0,0,0.1);position:relative;transform-origin:top center;min-height:200px}
-    .body-section{position:relative;overflow:visible;padding:10px}
-    .footer-section{position:relative;border-top:1px solid #ddd;background:#fafafa}
-    .abs-item{position:absolute;overflow:visible}
-    .rel-item{position:relative;overflow:visible}
-    .textbox{white-space:pre-wrap;word-wrap:break-word}
-    .textbox>div{line-height:1.4}
-    .rdl-table{border-collapse:collapse;table-layout:fixed;width:100%}
-    .rdl-table td{vertical-align:middle;padding:2px}
-    .image-placeholder{background:linear-gradient(135deg,#f5f5f5,#e5e5e5);display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;border:1px solid #ddd;border-radius:4px;min-height:30px}
-    .field-tag{background:linear-gradient(135deg,#e3f2fd,#bbdefb);color:#1565c0;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Consolas,monospace;font-size:.8em;border:1px solid #90caf9;display:inline-block;white-space:nowrap}
-    .unsupported{background:#fff3cd;border:1px dashed #ffc107;padding:6px;border-radius:4px;color:#856404;font-size:11px;text-align:center}
-    .rdl-infobar{color:var(--muted);font-size:12px;margin-top:6px}
+    .rdl-controls{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      justify-content:flex-end;
+      margin-bottom:6px;
+      font-family:Segoe UI, Tahoma, Arial, sans-serif;
+    }
+
+    .rdl-controls .btn{
+      background:#fff;
+      color:#000;
+      border:1px solid #000;
+      padding:2px 6px;
+      font-size:12px;
+      cursor:pointer;
+    }
+
+    .rdl-controls .btn:hover{
+      background:#eaeaea;
+    }
+
+    .rdl-controls .lbl{
+      color:#000;
+      font-size:12px;
+      margin:0 6px;
+    }
+
+    .rdl-viewport{
+      height:60vh;
+      min-height:320px;
+      overflow:auto;
+      border:1px solid #000;
+      background:#fff;
+      padding:8px;
+      font-family:Segoe UI, Tahoma, Arial, sans-serif;
+    }
+
+    .page{
+      background:#fff;
+      margin:0 auto 16px;
+      border:1px solid #000;
+      position:relative;
+      transform-origin:top center;
+      min-height:200px;
+    }
+
+    .body-section{
+      position:relative;
+      overflow:visible;
+      padding:6px;
+      border-bottom:1px dashed #000;
+    }
+
+    .footer-section{
+      position:relative;
+      border-top:1px dashed #000;
+      background:#fff;
+      padding:4px;
+    }
+
+    .abs-item{
+      position:absolute;
+      overflow:visible;
+      border:1px dashed #000;
+      padding:2px;
+      background:#fff;
+    }
+
+    .rel-item{
+      position:relative;
+      overflow:visible;
+      border:1px dashed #000;
+      padding:2px;
+      background:#fff;
+    }
+
+    .textbox{
+      white-space:pre-wrap;
+      word-wrap:break-word;
+      font-size:12px;
+      color:#000;
+    }
+
+    .textbox > div{
+      line-height:1.3;
+    }
+
+    .rdl-table{
+      border-collapse:collapse;
+      table-layout:fixed;
+      width:100%;
+      border:1px solid #000;
+      font-size:12px;
+    }
+
+    .rdl-table td{
+      vertical-align:middle;
+      padding:2px;
+      border:1px dashed #000;
+    }
+
+    .image-placeholder{
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#000;
+      font-size:11px;
+      border:1px dashed #000;
+      min-height:30px;
+    }
+
+    .field-tag{
+      background:#fff;
+      color:#000;
+      padding:1px 4px;
+      border:1px dashed #000;
+      font-family:Consolas, monospace;
+      font-size:.8em;
+      display:inline-block;
+      white-space:nowrap;
+      margin:1px;
+    }
+
+    .unsupported{
+      background:#fff;
+      border:1px dashed #000;
+      padding:4px;
+      color:#000;
+      font-size:11px;
+      text-align:center;
+    }
+
+    .rdl-infobar{
+      color:#000;
+      font-size:12px;
+      margin-top:6px;
+      font-family:Segoe UI, Tahoma, Arial, sans-serif;
+    }
+
+    .error-box{
+      border:1px solid #000;
+      padding:10px;
+      font-family:Segoe UI, Tahoma, Arial, sans-serif;
+      color:#000;
+    }
+
+    .error-box h3{
+      margin:0 0 6px 0;
+      font-size:14px;
+    }
   `;
+
   const style = document.createElement('style');
   style.id = 'rdlPreviewStyles';
   style.textContent = css;
   document.head.appendChild(style);
   __rdlStylesInjected = true;
 }
+
 
 function parseXmlSafe(xml) {
   const parser = new DOMParser();
@@ -64,22 +200,50 @@ function esc(t){ if(!t) return ''; const d=document.createElement('div'); d.text
 
 function expr(val){
   if(!val) return '';
-  val=String(val);
+  val = String(val);
+
+  // Plain text
   if(!val.startsWith('=')) return esc(val);
+
   try{
-    const fields=[...new Set((val.match(/Fields!(\w+)/g)||[]).map(m=>m.replace('Fields!','')))]
-    if(fields.length){ return fields.map(f=>'<span class="field-tag">'+esc(f)+'</span>').join(' '); }
-    let r=val.slice(1);
-    r=r.replace(/Today\(\)/gi,new Date().toLocaleDateString());
-    r=r.replace(/Now\(\)/gi,new Date().toLocaleString());
-    r=r.replace(/Globals!PageNumber/gi,'1');
-    r=r.replace(/Globals!TotalPages/gi,'1');
-    r=r.replace(/Globals!ReportName/gi,'Report');
-    r=r.replace(/User!UserID/gi,'User');
-    r=r.replace(/["\\&]/g,' ');
-    return r.trim()||esc(val);
-  }catch{ return esc(val); }
+    // Capture Fields and Parameters
+    const fieldMatches = (val.match(/Fields!(\w+)/g) || [])
+      .map(m => m.replace('Fields!',''));
+
+    const paramMatches = (val.match(/Parameters!(\w+)/g) || [])
+      .map(m => m.replace('Parameters!',''));
+
+    const tags = [];
+
+    fieldMatches.forEach(f => {
+      tags.push('<span class="field-tag">Field: ' + esc(f) + '</span>');
+    });
+
+    paramMatches.forEach(p => {
+      tags.push('<span class="field-tag">Param: ' + esc(p) + '</span>');
+    });
+
+    if (tags.length) return tags.join(' ');
+
+    // Fallback simple replacements
+    let r = val.slice(1);
+
+    r = r.replace(/Today\(\)/gi, new Date().toLocaleDateString());
+    r = r.replace(/Now\(\)/gi, new Date().toLocaleString());
+    r = r.replace(/Globals!PageNumber/gi, '1');
+    r = r.replace(/Globals!TotalPages/gi, '1');
+    r = r.replace(/Globals!ReportName/gi, 'Report');
+    r = r.replace(/User!UserID/gi, 'User');
+
+    r = r.replace(/["\\&]/g, ' ');
+
+    return esc(r.trim() || val);
+
+  } catch {
+    return esc(val);
+  }
 }
+
 
 function isHidden(item){
   try{ const vis=child(item,'Visibility'); if(!vis) return false; const hidden=text(vis,'Hidden'); return hidden==='true'||hidden==='True'; }catch{ return false; }

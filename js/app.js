@@ -385,7 +385,8 @@ document.addEventListener('DOMContentLoaded', () => {
       layoutContainerEl.appendChild(header);
       layoutContainerEl.appendChild(host);
       renderRDLPreview(host, content);
-    } else {
+    } 
+    else {
       renderLayoutPreview(layoutContainerEl, data);
     }
     if (layoutToggleBtn){
