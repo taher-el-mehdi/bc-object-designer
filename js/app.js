@@ -458,7 +458,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (copyAppInfoBtn) {
     copyAppInfoBtn.addEventListener('click', async () => {
       try {
-        const payload = state.appInfo || {};
+        const info = state.appInfo || {};
+        const payload = {
+          id: info.AppId || '',
+          name: info.Name || '',
+          publisher: info.Publisher || '',
+          version: info.Version || ''
+        };
         await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
         const prev = copyAppInfoBtn.textContent;
         copyAppInfoBtn.textContent = 'Copied!';
