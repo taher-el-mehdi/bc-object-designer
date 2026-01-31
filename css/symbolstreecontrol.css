@@ -1,0 +1,16 @@
+/* Tree control styles (better readability + contrast) */
+.symbolscont { font-size: 14px; line-height: 1.5; font-family: inherit; }
+.treeitem { }
+.shead { display:flex; align-items:center; gap:8px; padding:6px 8px; cursor:default; user-select:none; border-radius:6px; }
+.shead:hover { background: var(--hover); }
+.shead.selected { background: var(--selection); }
+.sheadnoexp { }
+.sheadcol { }
+.sheadexp { }
+.treelist { margin-left: 16px; }
+.cap { flex: 1; white-space: nowrap; overflow:hidden; text-overflow:ellipsis; color: var(--text); }
+.ico { width: 16px; height: 16px; background-size: 16px 16px; flex: 0 0 16px; }
+
+/* Count badge */
+.countbadge { background: var(--hover); border: 1px solid var(--border); color: var(--muted);
+	border-radius: 999px; padding: 2px 8px; font-size: 12px; flex: 0 0 auto; }

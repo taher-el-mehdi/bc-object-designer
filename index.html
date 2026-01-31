@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BC object designer – Browse Business Central objects</title>
+  <meta name="description" content="BC object designer is a fast, browser-based viewer for Microsoft Dynamics 365 Business Central objects. Load .app symbol packages and explore tables, pages, reports, queries, codeunits, and more.">
+  <meta name="keywords" content="BC object designer,Business Central,AL,AL symbols,AL objects,table,page,report,query,codeunit,enum,extension,viewer,browser">
+  <meta name="robots" content="index,follow">
+  <meta property="og:title" content="BC object designer">
+  <meta property="og:description" content="Explore Microsoft Dynamics 365 Business Central objects from .app symbol packages in your browser.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="BC object designer">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="BC object designer">
+  <meta name="twitter:description" content="Browse Business Central objects (.app) quickly in your browser.">
+  <link rel="stylesheet" href="./css/app.css" />
+  <link rel="stylesheet" href="./css/symbolstreecontrol.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 class="app-title" aria-label="Application title">BC object designer</h1>
+      <input type="file" id="fileInput" accept=".app,.zip" />
+      <progress id="uploadProgress" class="progress hidden" max="100" value="0"></progress>
+      <span id="status" class="status">No symbols loaded</span>
+    </div>
+    <div class="topbar-center">
+      <span id="uploadedAppName" class="uploaded-name" title="Uploaded app name"></span>
+    </div>
+    <div class="topbar-right">
+      <span id="toolVersion" class="badge" title="BC object designer version"></span>
+      <button id="clearCacheBtn" class="tbarbtn" title="Remove stored app and parsed data">Clear cache</button>
+    </div>
+  </div>
+  <div class="content">
+    <aside id="sidebar" class="sidebar" aria-label="Object types">
+      <div class="sidebarhdr">Object Types</div>
+      <div id="typesSidebar" class="types-list" tabindex="1">Load a .app package to begin…</div>
+      <div class="sidebarfooter">
+        <div id="appInfo" class="appinfo hidden" aria-label="Imported app info">
+          <span id="appName" class="badge" title="Name"></span>
+          <span id="appVersion" class="badge" title="Version"></span>
+          <span id="appPublisher" class="badge" title="Publisher"></span>
+          <span id="appId" class="badge badge-id" title="AppId"></span>
+        </div>
+        <button id="copyAppInfoBtn" class="copy-btn hidden" title="Copy app info as JSON">Copy app info JSON</button>
+      </div>
+    </aside>
+    <main id="mainPanel" class="mainpanel" aria-label="Object list">
+      <div class="mainhdr">
+        <div id="selectedTypeName" class="mainname">No type selected</div>
+        <div class="contcoltb"></div>
+      </div>
+      <div class="listwrap">
+        <table id="objectTable" class="object-table" aria-label="Objects of selected type">
+          <thead>
+            <tr><th>ID</th><th>Name</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="emptyListMsg" class="empty-msg hidden">No objects available for this type.</div>
+      </div>
+      <div id="listCodeResizer" class="hresizer hidden" aria-hidden="true"></div>
+      <section id="codePanel" class="codepanel hidden" aria-label="Object source viewer">
+        <div class="codehdr">
+          <div id="codeTitle" class="codetitle">No object selected</div>
+          <div class="codetools">
+            <button id="copyCodeBtn" class="tbarbtn" title="Copy source to clipboard">Copy</button>
+            <button id="closeCodeBtn" class="tbarbtn" title="Close code viewer">Close</button>
+          </div>
+        </div>
+        <pre id="codeContent" class="codecontent" tabindex="0"></pre>
+        <div id="noSourceMsg" class="empty-msg hidden">No source content available for this object.</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/split.js@1.6.0/dist/split.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  
+  <!-- App entry (ES modules will import dependencies) -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
