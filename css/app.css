@@ -11,6 +11,10 @@
   --hover: #f2f4f8;
   --selection: #e6f0ff;
   --focus: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  /* Layout sizing */
+  --banner-h: 34px;
+  --topbar-h: 48px;
+  --footer-h: 40px;
   /* Button (soft) theme */
   --btn-bg: #f4f6fb;
   --btn-bg-hover: #eef2fb;
@@ -41,6 +45,10 @@
     --hover: #0b1220;
     --selection: rgba(96, 165, 250, 0.18);
     --focus: 0 0 0 3px rgba(96, 165, 250, 0.35);
+    /* Layout sizing (dark keeps same metrics) */
+    --banner-h: 34px;
+    --topbar-h: 48px;
+    --footer-h: 40px;
     /* Button (soft) theme - dark */
     --btn-bg: #172033;
     --btn-bg-hover: #1b2438;
@@ -79,6 +87,14 @@ body {
   top: 0;
   z-index: 10;
 }
+/* Open-source banner */
+.os-banner { background: var(--hover); border-bottom: 1px solid var(--border); }
+.os-banner-inner { height: var(--banner-h); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; }
+.os-text { color: var(--muted); font-weight: 600; }
+.os-link { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-600); text-decoration: none; font-weight: 600; }
+.os-link:hover { text-decoration: underline; }
+.gh-ico { display: inline-flex; align-items: center; justify-content: center; color: var(--text); }
+.os-link-text { display: inline-block; }
 .fileinput-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .topbar h1.app-title { font-size: 14px; font-weight: 600; margin: 0; }
 .status { color: var(--muted); font-size: 12px; }
@@ -124,13 +140,15 @@ body {
 .propstable td.val { color: var(--text); word-break: break-word; }
 
 /* Content layout */
-.content { position: absolute; top: 48px; left: 0; right: 0; bottom: 0; display: flex; }
-.landing-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 20; }
+.content { position: absolute; top: calc(var(--topbar-h) + var(--banner-h)); left: 0; right: 0; bottom: var(--footer-h); display: flex; }
+.landing-overlay { position: fixed; top: var(--banner-h); left: 0; right: 0; bottom: var(--footer-h); display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 20; }
+/* Hide topbar when landing overlay is active (keeps banner & footer visible) */
+body.overlay-active .topbar { display: none; }
 .dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 36px; width: 520px; max-width: 92%; background: var(--surface); text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
 .dz-title { font-weight: 700; margin-bottom: 8px; }
 .dz-help { color: var(--muted); margin-bottom: 14px; }
 .landing-overlay.dragover .dropzone { border-color: var(--primary); background: var(--hover); }
-.sidebar { position: fixed; top: 48px; left: 0; bottom: 0; width: 80vw; max-width: 280px; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--border); transform: translateX(-100%); transition: transform 0.2s ease; z-index: 25; }
+.sidebar { position: fixed; top: calc(var(--topbar-h) + var(--banner-h)); left: 0; bottom: var(--footer-h); width: 80vw; max-width: 280px; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--border); transform: translateX(-100%); transition: transform 0.2s ease; z-index: 25; }
 .sidebar.open { transform: translateX(0); }
 .mainpanel { margin-left: 0; flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; background: var(--surface); }
 
@@ -262,7 +280,7 @@ input[type="text"]:focus, input[type="file"]:focus { outline: none; box-shadow: 
 .codepanel.fullscreen { flex: 1 1 auto; border-top: 0; }
 
 /* Modal */
-.modal { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); z-index: 30; }
+.modal { position: fixed; top: calc(var(--topbar-h) + var(--banner-h)); left: 0; right: 0; bottom: var(--footer-h); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); z-index: 30; }
 .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 560px; max-width: 92%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .modal-title { font-weight: 700; }
@@ -276,10 +294,28 @@ input[type="text"]:focus, input[type="file"]:focus { outline: none; box-shadow: 
 .modal-content.fullscreen .layout-container { flex: 1 1 auto; height: auto; min-height: 0; }
 
 /* Sidebar backdrop for mobile */
-.sidebar-backdrop { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.25); z-index: 24; }
+.sidebar-backdrop { position: fixed; top: calc(var(--topbar-h) + var(--banner-h)); left: 0; right: 0; bottom: var(--footer-h); background: rgba(0,0,0,0.25); z-index: 24; }
+
+/* Privacy footer */
+.privacy-footer { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); z-index: 10; }
+.privacy-inner { height: var(--footer-h); display: flex; align-items: center; justify-content: center; padding: 0 12px; }
+.privacy-text { color: var(--muted); font-size: 12px; text-align: center; }
+/* Hide footer after app is loaded and reclaim space */
+body.footer-hidden .privacy-footer { display: none; }
+body.footer-hidden .content { bottom: 0; }
+body.footer-hidden .sidebar { bottom: 0; }
+body.footer-hidden .sidebar-backdrop { bottom: 0; }
+body.footer-hidden .modal { bottom: 0; }
 
 /* Mobile adjustments */
 @media (max-width: 767px) {
+  :root { --banner-h: 32px; --footer-h: 44px; }
+  /* Keep banner compact and single-line on mobile */
+  .os-banner-inner { padding: 6px 10px; gap: 8px; white-space: nowrap; }
+  .os-text { font-size: 12px; }
+  .os-link { padding: 4px 6px; }
+  .os-link-text { display: none; }
+  .gh-ico svg { width: 16px; height: 16px; }
   .topbar { flex-wrap: wrap; }
   .topbar-center { order: 3; width: 100%; justify-content: flex-start; padding: 8px 0; }
   .uploaded-name { display: none; }

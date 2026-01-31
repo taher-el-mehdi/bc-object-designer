@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const landingOverlayEl = document.getElementById('landingOverlay');
   const overlayUploadBtn = document.getElementById('overlayUploadBtn');
   const sidebarEl = document.getElementById('sidebar');
+  const bodyEl = document.body;
   const globalSearchEl = document.getElementById('globalSearch');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const listWrapEl = document.querySelector('.listwrap');
@@ -868,6 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!file) return;
     // Hide overlay once user starts uploading
     landingOverlayEl?.classList.add('hidden');
+    bodyEl?.classList.remove('overlay-active');
     // Reveal sidebar when processing begins
     sidebarEl?.classList.remove('hidden');
 
@@ -920,6 +922,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (firstType){ selectType(firstType); } else { selectType(''); }
       hideProgress();
       setStatus(`Loaded ${state.objects.length} symbols from ${state.filename}`);
+      // Hide privacy footer after successful load
+      bodyEl?.classList.add('footer-hidden');
 
       try { await saveLastState({ filename: state.filename, info: state.appInfo, objects: state.objects }); }
       catch (persistErr) { console.warn('Failed to persist state:', persistErr); }
@@ -930,6 +934,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (settingsBtn) settingsBtn.classList.add('hidden');
       // If parsing failed, show overlay again for retry
       landingOverlayEl?.classList.remove('hidden');
+      bodyEl?.classList.add('overlay-active');
+      bodyEl?.classList.remove('footer-hidden');
       // Hide sidebar until a valid app is loaded
       sidebarEl?.classList.add('hidden');
     }
@@ -991,6 +997,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedTypeNameEl.textContent = 'No type selected';
         // Show landing overlay to prompt for upload again
         landingOverlayEl?.classList.remove('hidden');
+        bodyEl?.classList.add('overlay-active');
+        bodyEl?.classList.remove('footer-hidden');
         // Hide sidebar when cache is cleared
         sidebarEl?.classList.add('hidden');
         setStatus('Cache cleared');
@@ -1028,12 +1036,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus(`Restored ${state.objects.length} symbols from cache${state.filename ? ` (${state.filename})` : ''}`);
         // Hide landing overlay when we have a restored session
         landingOverlayEl?.classList.add('hidden');
+        bodyEl?.classList.remove('overlay-active');
+        bodyEl?.classList.add('footer-hidden');
         // Show sidebar on successful restore
         sidebarEl?.classList.remove('hidden');
       } else {
         setStatus('Ready');
         // Show landing overlay on first visit / empty cache
         landingOverlayEl?.classList.remove('hidden');
+        bodyEl?.classList.add('overlay-active');
+        bodyEl?.classList.remove('footer-hidden');
         // Hide sidebar until an app is loaded
         sidebarEl?.classList.add('hidden');
       }
