@@ -69,6 +69,7 @@ body {
   top: 0;
   z-index: 10;
 }
+.fileinput-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .topbar h1.app-title { font-size: 14px; font-weight: 600; margin: 0; }
 .status { color: var(--muted); font-size: 12px; }
 /* Upload progress */

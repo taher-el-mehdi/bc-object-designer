@@ -403,6 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const uploadedNameEl = document.getElementById('uploadedAppName');
         if (uploadedNameEl) uploadedNameEl.textContent = '';
         selectedTypeNameEl.textContent = 'No type selected';
+        // Show landing overlay to prompt for upload again
+        landingOverlayEl?.classList.remove('hidden');
         setStatus('Cache cleared');
       } catch (err) {
         console.error(err);
