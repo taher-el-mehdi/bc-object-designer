@@ -146,21 +146,22 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedTypeNameEl.textContent = `Search results`;
     tbody.innerHTML = '';
 
-    // Determine matching strategy (ID, range, name)
-    const digitsOnly = /^\d+$/.test(q);
+    // Determine matching strategy (range, numeric substring, name/type)
     const rangeMatch = q.match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+    const digitsOnly = /^\d+$/.test(q);
     const results = [];
-    if (digitsOnly){
-      const idNum = Number(q);
-      for (const o of (state.objects || [])){
-        if (o.id === idNum) results.push(o);
-      }
-    } else if (rangeMatch){
+    if (rangeMatch){
       const from = Number(rangeMatch[1]);
       const to = Number(rangeMatch[2]);
       const lo = Math.min(from, to), hi = Math.max(from, to);
       for (const o of (state.objects || [])){
         if (typeof o.id === 'number' && o.id >= lo && o.id <= hi) results.push(o);
+      }
+    } else if (digitsOnly) {
+      // Numeric-only query: match any ID containing the digits
+      for (const o of (state.objects || [])){
+        const idStr = o.id != null ? String(o.id) : '';
+        if (idStr.includes(q)) results.push(o);
       }
     } else {
       const ql = q.toLowerCase();
