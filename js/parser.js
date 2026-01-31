@@ -262,7 +262,17 @@ async function readSymbolsJson(file){
       extendsTarget = sym.TargetTable || sym.Target || sym.TargetObject || undefined;
     }
 
-    return { type: kind, id, name, caption, fields, controls, actions, keys, values, relations, refSrc, properties, sourceText, extendsTarget };
+    // Report layouts (RDLC/Word)
+    let rdlcLayout = undefined;
+    let wordLayout = undefined;
+    if (/^report$/i.test(kind)){
+      rdlcLayout = getProp(sym, ['RDLCLayout', 'RdlcLayout']);
+      wordLayout = getProp(sym, ['WordLayout']);
+      if (typeof rdlcLayout === 'string') rdlcLayout = rdlcLayout.trim().replace(/^["']|["'];?$/g, ''); else rdlcLayout = undefined;
+      if (typeof wordLayout === 'string') wordLayout = wordLayout.trim().replace(/^["']|["'];?$/g, ''); else wordLayout = undefined;
+    }
+
+    return { type: kind, id, name, caption, fields, controls, actions, keys, values, relations, refSrc, properties, sourceText, extendsTarget, rdlcLayout, wordLayout };
   }
 
   /**

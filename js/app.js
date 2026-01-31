@@ -1,4 +1,6 @@
 import { parseAppFile, groupByType } from './parser.js';
+import { loadReportLayout, renderLayoutPreview } from './layoutViewer.js';
+import { renderRDLPreview } from './previewRDL.js';
 import { showERDiagramAll } from './er-diagram.js';
 import { APP_VERSION } from './version.js';
 import { saveLastState, loadLastState, clearLastState, storageSupported } from './storage.js';
@@ -35,6 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const erModalContentEl = erDiagramModalEl?.querySelector('.modal-content');
     const erModalFooterEl = erDiagramModalEl?.querySelector('.modal-footer');
     const erModalBodyEl = erDiagramModalEl?.querySelector('.modal-body');
+    // Layout modal
+    const layoutModalEl = document.getElementById('layoutModal');
+    const layoutCloseBtn = document.getElementById('layoutCloseBtn');
+    const layoutToggleBtn = document.getElementById('layoutToggleBtn');
+    const layoutModalTitleEl = document.getElementById('layoutModalTitle');
+    const layoutContainerEl = document.getElementById('layoutContainer');
+    const layoutLoadingMsgEl = document.getElementById('layoutLoadingMsg');
+    const viewLayoutBtn = document.getElementById('viewLayoutBtn');
   const appSettingsCloseBtn = document.getElementById('appSettingsCloseBtn');
   const copyAppInfoModalBtn = document.getElementById('copyAppInfoModalBtn');
   const appNameValEl = document.getElementById('appNameVal');
@@ -51,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const versionEl = document.getElementById('toolVersion');
   if (versionEl) { versionEl.textContent = `bc-object-designer v: ${APP_VERSION}`; }
 
-  let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false, currentObject: null };
+  let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false, currentObject: null, currentLayout: null, layoutViewMode: 'visual' };
 
   // Attempt to extract RuntimeVersion from raw metadata
   function extractRuntimeVersion(obj){
@@ -319,6 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const tdId = document.createElement('td'); tdId.textContent = o.id != null ? String(o.id) : '';
       const tdName = document.createElement('td'); tdName.textContent = o.name || '';
       tr.appendChild(tdId); tr.appendChild(tdName);
+
+      // No layout button on list page as requested
       tr.addEventListener('click', () => openCodeForObject(group.type, o.id));
       tr.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') openCodeForObject(group.type, o.id);
@@ -352,6 +364,69 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!group) return undefined;
     return group.items.find(x => x.id === id);
   }
+
+  // Render current layout (visual RDLC or raw XML)
+  function renderCurrentLayout(){
+    if (!layoutContainerEl) return;
+    const data = state.currentLayout;
+    layoutContainerEl.innerHTML = '';
+    if (!data) return;
+    const { content, entryPath, kind } = data;
+    const isRdl = kind === 'rdlc';
+    const mode = state.layoutViewMode;
+    if (isRdl && mode === 'visual'){
+      const header = document.createElement('div');
+      header.className = 'layout-header';
+      header.textContent = entryPath;
+      const host = document.createElement('div');
+      layoutContainerEl.appendChild(header);
+      layoutContainerEl.appendChild(host);
+      renderRDLPreview(host, content);
+    } else {
+      renderLayoutPreview(layoutContainerEl, data);
+    }
+    if (layoutToggleBtn){
+      if (isRdl){
+        layoutToggleBtn.classList.remove('hidden');
+        layoutToggleBtn.textContent = (mode === 'visual') ? 'Show XML' : 'Show Visual';
+      } else {
+        layoutToggleBtn.classList.add('hidden');
+      }
+    }
+  }
+
+  // Open layout viewer modal for a report
+  async function openReportLayout(reportObj){
+    if (!layoutModalEl || !layoutContainerEl) return;
+    layoutContainerEl.innerHTML = '';
+    layoutLoadingMsgEl?.classList.remove('hidden');
+    layoutModalEl.classList.remove('hidden');
+    if (layoutModalTitleEl) layoutModalTitleEl.textContent = `Report Layout · ${reportObj.name || ''}`;
+    try {
+      if (!state.appArrayBuffer) {
+        throw new Error('No app buffer available. Please re-upload the .app to view layouts.');
+      }
+      const { content, entryPath, kind } = await loadReportLayout(state.appArrayBuffer, reportObj.refSrc, reportObj.rdlcLayout, reportObj.wordLayout);
+      state.currentLayout = { content, entryPath, kind };
+      state.layoutViewMode = (kind === 'rdlc') ? 'visual' : 'xml';
+      renderCurrentLayout();
+    } catch (err) {
+      const msg = document.createElement('div');
+      msg.className = 'empty-msg';
+      msg.textContent = 'Failed to load layout: ' + (err?.message || 'Unknown error');
+      layoutContainerEl.appendChild(msg);
+    } finally {
+      layoutLoadingMsgEl?.classList.add('hidden');
+    }
+  }
+  layoutCloseBtn?.addEventListener('click', () => { layoutModalEl?.classList.add('hidden'); });
+
+  layoutToggleBtn?.addEventListener('click', () => {
+    if (!state.currentLayout) return;
+    if (state.currentLayout.kind !== 'rdlc') return;
+    state.layoutViewMode = (state.layoutViewMode === 'visual') ? 'xml' : 'visual';
+    renderCurrentLayout();
+  });
 
   function highlightSelectedRow(type, id){
     const rows = objectTableEl?.querySelectorAll('tbody tr') || [];
@@ -392,6 +467,22 @@ document.addEventListener('DOMContentLoaded', () => {
     codeContentEl.scrollTop = 0;
 
     // ER button is controlled at the list header when Table type is selected
+    // Toggle View Layout button for Report objects only
+    if (viewLayoutBtn){
+      const isReport = String(obj.type || type) === 'Report';
+      viewLayoutBtn.classList.toggle('hidden', !isReport);
+      if (isReport){
+        viewLayoutBtn.disabled = !(obj.rdlcLayout || obj.wordLayout);
+        viewLayoutBtn.title = obj.rdlcLayout || obj.wordLayout || 'No layout referenced';
+        viewLayoutBtn.onclick = async (e) => {
+          console.log(obj);
+          e?.stopPropagation?.();
+          await openReportLayout(obj);
+        };
+      } else {
+        viewLayoutBtn.onclick = null;
+      }
+    }
   }
 
   async function ensureHighlighter() {
@@ -721,6 +812,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       reader.readAsArrayBuffer(file);
       const arrayBuf = await loadPromise;
+      // Save raw buffer for layout extraction later
+      state.appArrayBuffer = arrayBuf;
 
       setProgress(100);
       setStatus('Parsing symbols…');
