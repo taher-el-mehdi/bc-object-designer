@@ -31,6 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const erDiagramContainerEl = document.getElementById('erDiagramContainer');
     const erLoadingMsgEl = document.getElementById('erLoadingMsg');
     const erDiagramTitleEl = document.getElementById('erDiagramTitle');
+    const erExportPngBtn = document.getElementById('erExportPngBtn');
+    const erModalContentEl = erDiagramModalEl?.querySelector('.modal-content');
+    const erModalFooterEl = erDiagramModalEl?.querySelector('.modal-footer');
+    const erModalBodyEl = erDiagramModalEl?.querySelector('.modal-body');
   const appSettingsCloseBtn = document.getElementById('appSettingsCloseBtn');
   const copyAppInfoModalBtn = document.getElementById('copyAppInfoModalBtn');
   const appNameValEl = document.getElementById('appNameVal');
@@ -503,17 +507,114 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 30);
   });
-  erDiagramCloseBtn?.addEventListener('click', () => { erDiagramModalEl?.classList.add('hidden'); });
+  erDiagramCloseBtn?.addEventListener('click', async () => {
+    if (isInFullscreen()) await exitDiagramFullscreen();
+    erDiagramModalEl?.classList.add('hidden');
+  });
+
+  // Export ER diagram to PNG
+  function exportErDiagramToPng(){
+    try {
+      const svg = erDiagramContainerEl?.querySelector('svg');
+      if (!svg) return;
+      const clone = svg.cloneNode(true);
+
+      // Resolve CSS variables to absolute colors for portability
+      const rootStyle = getComputedStyle(document.documentElement);
+      const vars = ['--surface','--text','--muted','--primary','--accent','--border','--hover'];
+      const colors = {};
+      vars.forEach(v => { colors[v] = (rootStyle.getPropertyValue(v) || '').trim() || '#000000'; });
+      const replaceVars = (val) => val && val.replace(/var\(--([a-zA-Z0-9-]+)\)/g, (_, n) => colors[`--${n}`] || '#000000');
+
+      // Replace fill/stroke/background attributes/styles
+      const all = clone.querySelectorAll('*');
+      all.forEach(el => {
+        ['fill','stroke'].forEach(attr => {
+          const a = el.getAttribute(attr);
+          if (a && a.includes('var(')) el.setAttribute(attr, replaceVars(a));
+        });
+        if (el.style) {
+          const bg = el.style.background || '';
+          if (bg && bg.includes('var(')) el.style.background = replaceVars(bg);
+        }
+      });
+      // Ensure root background is a concrete color
+      const bgColor = colors['--surface'] || '#ffffff';
+      clone.style.background = bgColor;
+
+      const serializer = new XMLSerializer();
+      const svgStr = serializer.serializeToString(clone);
+      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+
+      // Canvas size based on viewBox for crisp export
+      const vb = (svg.getAttribute('viewBox') || '').split(/\s+/);
+      let vw = Number(vb[2]) || (erDiagramContainerEl?.clientWidth || 800);
+      let vh = Number(vb[3]) || (erDiagramContainerEl?.clientHeight || 600);
+      const ratio = window.devicePixelRatio || 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(vw * ratio);
+      canvas.height = Math.ceil(vh * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.scale(ratio, ratio);
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, vw, vh);
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          ctx.drawImage(img, 0, 0, vw, vh);
+          canvas.toBlob((blob) => {
+            if (!blob) return;
+            const a = document.createElement('a');
+            let out = state.filename || 'diagram.app';
+            if (/\.app$/i.test(out)) out = out.replace(/\.app$/i, '.png');
+            else if (/\.zip$/i.test(out)) out = out.replace(/\.zip$/i, '.png');
+            else out = out + '.png';
+            a.download = out;
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+          }, 'image/png');
+        } catch {}
+      };
+      img.src = dataUrl;
+    } catch {}
+  }
+
+  erExportPngBtn?.addEventListener('click', exportErDiagramToPng);
 
   // Fullscreen: toggle via button or F11
   function isInFullscreen(){ return !!document.fullscreenElement; }
   async function enterDiagramFullscreen(){
     try {
-      if (erDiagramContainerEl?.requestFullscreen) {
-        await erDiagramContainerEl.requestFullscreen();
-        // Expand container to viewport while in fullscreen
-        erDiagramContainerEl.style.width = '100vw';
-        erDiagramContainerEl.style.height = '100vh';
+      if (erModalContentEl?.requestFullscreen) {
+        await erModalContentEl.requestFullscreen();
+        // Expand modal content to viewport while in fullscreen
+        erModalContentEl.style.width = '100vw';
+        erModalContentEl.style.height = '100vh';
+        erModalContentEl.style.margin = '0';
+        erModalContentEl.classList.add('fullscreen');
+        // Let body+diagram fill the screen
+        if (erModalBodyEl) {
+          erModalBodyEl.style.flex = '1 1 auto';
+          erModalBodyEl.style.display = 'flex';
+          erModalBodyEl.style.flexDirection = 'column';
+        }
+        if (erDiagramContainerEl) {
+          erDiagramContainerEl.style.flex = '1 1 auto';
+          erDiagramContainerEl.style.height = '100%';
+          // Update SVG viewBox to current size to ensure full export
+          const svg = erDiagramContainerEl.querySelector('svg');
+          if (svg) {
+            const w = erDiagramContainerEl.clientWidth || 800;
+            const h = erDiagramContainerEl.clientHeight || 600;
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+          }
+        }
+        if (erDiagramFsBtn) erDiagramFsBtn.textContent = 'Normal view';
+        // Hide footer tips while in fullscreen
+        if (erModalFooterEl) erModalFooterEl.classList.add('hidden');
       }
     } catch {}
   }
@@ -535,9 +636,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // Cleanup styles on fullscreen exit
   document.addEventListener('fullscreenchange', () => {
-    if (!isInFullscreen() && erDiagramContainerEl){
-      erDiagramContainerEl.style.width = '';
-      erDiagramContainerEl.style.height = '';
+    if (isInFullscreen()) {
+      if (erDiagramFsBtn) erDiagramFsBtn.textContent = 'Normal view';
+      if (erModalFooterEl) erModalFooterEl.classList.add('hidden');
+    } else {
+      if (erModalContentEl){
+        erModalContentEl.style.width = '';
+        erModalContentEl.style.height = '';
+        erModalContentEl.style.margin = '';
+        erModalContentEl.classList.remove('fullscreen');
+      }
+      if (erModalBodyEl) {
+        erModalBodyEl.style.flex = '';
+        erModalBodyEl.style.display = '';
+        erModalBodyEl.style.flexDirection = '';
+      }
+      if (erDiagramContainerEl) {
+        erDiagramContainerEl.style.flex = '';
+        erDiagramContainerEl.style.height = '';
+      }
+      if (erDiagramFsBtn) erDiagramFsBtn.textContent = 'Fullscreen';
+      // Restore footer when exiting fullscreen
+      if (erModalFooterEl) erModalFooterEl.classList.remove('hidden');
     }
   });
 
