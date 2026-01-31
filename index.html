@@ -18,8 +18,9 @@
   <link rel="stylesheet" href="./css/symbolstreecontrol.css" />
 </head>
 <body>
-  <div class="topbar">
+    <div class="topbar">
     <div class="topbar-left">
+      <button id="toggleSidebarBtn" class="tbarbtn outline" title="Toggle sidebar" aria-label="Toggle object types">☰</button>
       <h1 class="app-title" aria-label="Application title">BC object designer</h1>
       <input type="file" id="fileInput" accept=".app,.zip" class="fileinput-hidden" aria-hidden="true" />
       <progress id="uploadProgress" class="progress hidden" max="100" value="0" style="visibility: hidden;"></progress>
@@ -46,7 +47,8 @@
         <button id="overlayUploadBtn" class="tbarbtn" title="Select a .app file">Select .app file</button>
       </div>
     </div>
-    <aside id="sidebar" class="sidebar" aria-label="Object types">
+    <div id="sidebarBackdrop" class="sidebar-backdrop hidden" aria-hidden="true"></div>
+    <aside id="sidebar" class="sidebar" aria-label="Object types" tabindex="-1">
       <div class="sidebarhdr">Object Types</div>
       <div id="typesSidebar" class="types-list" tabindex="1">Load a .app package to begin…</div>
       <div class="sidebarfooter">

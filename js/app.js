@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const globalSearchEl = document.getElementById('globalSearch');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const listWrapEl = document.querySelector('.listwrap');
+  const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+  const sidebarBackdropEl = document.getElementById('sidebarBackdrop');
   const settingsBtn = document.getElementById('settingsBtn');
   const appSettingsModalEl = document.getElementById('appSettingsModal');
     const erDiagramModalEl = document.getElementById('erDiagramModal');
@@ -59,6 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const appSymbolCountValEl = document.getElementById('appSymbolCountVal');
 
   function setStatus(text){ document.getElementById('status').textContent = text; }
+  // Mobile sidebar toggle
+  function openSidebar(){ document.getElementById('sidebar')?.classList.add('open'); sidebarBackdropEl?.classList.remove('hidden'); }
+  function closeSidebar(){ document.getElementById('sidebar')?.classList.remove('open'); sidebarBackdropEl?.classList.add('hidden'); }
+  toggleSidebarBtn?.addEventListener('click', () => { const sb = document.getElementById('sidebar'); if (sb?.classList.contains('open')) closeSidebar(); else openSidebar(); });
+  sidebarBackdropEl?.addEventListener('click', () => closeSidebar());
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
+  // Close sidebar when opening modals
+  document.getElementById('erDiagramModal')?.addEventListener('click', () => closeSidebar());
+  document.getElementById('layoutModal')?.addEventListener('click', () => closeSidebar());
 
   // Show application version in the top bar
   const versionEl = document.getElementById('toolVersion');
