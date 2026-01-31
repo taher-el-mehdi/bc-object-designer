@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeCodeBtn = document.getElementById('closeCodeBtn');
   const landingOverlayEl = document.getElementById('landingOverlay');
   const overlayUploadBtn = document.getElementById('overlayUploadBtn');
+  const sidebarEl = document.getElementById('sidebar');
   const globalSearchEl = document.getElementById('globalSearch');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
   const listWrapEl = document.querySelector('.listwrap');
@@ -867,6 +868,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!file) return;
     // Hide overlay once user starts uploading
     landingOverlayEl?.classList.add('hidden');
+    // Reveal sidebar when processing begins
+    sidebarEl?.classList.remove('hidden');
 
     const progressEl = document.getElementById('uploadProgress');
     const showProgress = () => { progressEl.classList.remove('hidden'); progressEl.value = 0; };
@@ -927,6 +930,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (settingsBtn) settingsBtn.classList.add('hidden');
       // If parsing failed, show overlay again for retry
       landingOverlayEl?.classList.remove('hidden');
+      // Hide sidebar until a valid app is loaded
+      sidebarEl?.classList.add('hidden');
     }
   }
 
@@ -986,6 +991,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedTypeNameEl.textContent = 'No type selected';
         // Show landing overlay to prompt for upload again
         landingOverlayEl?.classList.remove('hidden');
+        // Hide sidebar when cache is cleared
+        sidebarEl?.classList.add('hidden');
         setStatus('Cache cleared');
       } catch (err) {
         console.error(err);
@@ -1021,10 +1028,14 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus(`Restored ${state.objects.length} symbols from cache${state.filename ? ` (${state.filename})` : ''}`);
         // Hide landing overlay when we have a restored session
         landingOverlayEl?.classList.add('hidden');
+        // Show sidebar on successful restore
+        sidebarEl?.classList.remove('hidden');
       } else {
         setStatus('Ready');
         // Show landing overlay on first visit / empty cache
         landingOverlayEl?.classList.remove('hidden');
+        // Hide sidebar until an app is loaded
+        sidebarEl?.classList.add('hidden');
       }
     } catch (err) {
       console.warn('Auto-restore failed:', err);
