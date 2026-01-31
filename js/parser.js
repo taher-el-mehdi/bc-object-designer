@@ -68,6 +68,7 @@ async function readSymbolsJson(file){
   function extractObjectsFromKnownSections(raw){
     const sections = [
       ['Tables', 'Table'],
+      ['TableExtensions', 'TableExtension'],
       ['Pages', 'Page'],
       ['Reports', 'Report'],
       ['XmlPorts', 'XmlPort'],
@@ -75,6 +76,7 @@ async function readSymbolsJson(file){
       ['Codeunits', 'Codeunit'],
       ['ControlAddIns', 'ControlAddIn'],
       ['EnumTypes', 'EnumType'],
+      ['EnumExtensions', 'EnumExtension'],
       ['Interfaces', 'Interface'],
       ['PermissionSets', 'PermissionSet'],
       ['PermissionSetExtensions', 'PermissionSetExtension'],
