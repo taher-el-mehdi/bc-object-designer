@@ -22,7 +22,7 @@
     <div class="topbar-left">
       <h1 class="app-title" aria-label="Application title">BC object designer</h1>
       <input type="file" id="fileInput" accept=".app,.zip" />
-      <progress id="uploadProgress" class="progress hidden" max="100" value="0"></progress>
+      <progress id="uploadProgress" class="progress hidden" max="100" value="0" style="visibility: hidden;"></progress>
       <span id="status" class="status">No symbols loaded</span>
     </div>
     <div class="topbar-center">
@@ -34,6 +34,14 @@
     </div>
   </div>
   <div class="content">
+    <!-- Landing overlay for first visit / no cache -->
+    <div id="landingOverlay" class="landing-overlay" aria-label="Upload Business Central .app package">
+      <div class="dropzone" role="button" tabindex="0" aria-describedby="dzHelp">
+        <div class="dz-title">Upload your .app package</div>
+        <div id="dzHelp" class="dz-help">Drag & drop here or click Select</div>
+        <button id="overlayUploadBtn" class="tbarbtn" title="Select a .app file">Select .app file</button>
+      </div>
+    </div>
     <aside id="sidebar" class="sidebar" aria-label="Object types">
       <div class="sidebarhdr">Object Types</div>
       <div id="typesSidebar" class="types-list" tabindex="1">Load a .app package to begin…</div>

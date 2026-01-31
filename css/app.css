@@ -114,6 +114,11 @@ body {
 
 /* Content layout */
 .content { position: absolute; top: 48px; left: 0; right: 0; bottom: 0; display: flex; }
+.landing-overlay { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 20; }
+.dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 36px; width: 520px; max-width: 92%; background: var(--surface); text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,0.06); }
+.dz-title { font-weight: 700; margin-bottom: 8px; }
+.dz-help { color: var(--muted); margin-bottom: 14px; }
+.landing-overlay.dragover .dropzone { border-color: var(--primary); background: var(--hover); }
 .sidebar { position: fixed; top: 48px; left: 0; bottom: 0; flex: 0 0 240px; width: 240px; display: flex; flex-direction: column; min-width: 200px; background: var(--surface); border-right: 1px solid var(--border); }
 .mainpanel { margin-left: 240px; flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; background: var(--surface); }
 

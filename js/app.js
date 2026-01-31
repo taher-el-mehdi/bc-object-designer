@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const listCodeResizerEl = document.getElementById('listCodeResizer');
   const copyCodeBtn = document.getElementById('copyCodeBtn');
   const closeCodeBtn = document.getElementById('closeCodeBtn');
+  const landingOverlayEl = document.getElementById('landingOverlay');
+  const overlayUploadBtn = document.getElementById('overlayUploadBtn');
 
   function setStatus(text){ document.getElementById('status').textContent = text; }
 
@@ -279,9 +281,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return found;
   }
 
-  document.getElementById('fileInput').addEventListener('change', async (e) => {
-    const file = e.target.files && e.target.files[0];
+  async function processFile(file){
     if (!file) return;
+    // Hide overlay once user starts uploading
+    landingOverlayEl?.classList.add('hidden');
 
     const progressEl = document.getElementById('uploadProgress');
     const showProgress = () => { progressEl.classList.remove('hidden'); progressEl.value = 0; };
@@ -311,10 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setProgress(100);
       setStatus('Parsing symbols…');
       const { raw, objects } = await parseAppFile(arrayBuf);
-      // Restore previous console output to match objects.json view
       console.log(raw);
       updateAppInfo(raw);
-      
 
       state.objects = Array.isArray(objects) ? objects : [];
       state.filename = file.name;
@@ -328,30 +329,55 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       state.groups = groupByType(state.objects);
       renderTypeSidebar(state.groups);
-      // Default to first available type
       const firstType = state.groups[0]?.type;
-      if (firstType){
-        selectType(firstType);
-      } else {
-        selectType('');
-      }
+      if (firstType){ selectType(firstType); } else { selectType(''); }
       hideProgress();
       setStatus(`Loaded ${state.objects.length} symbols from ${state.filename}`);
 
-      // Persist parsed state for auto-restore
-      try {
-        await saveLastState({ filename: state.filename, info: state.appInfo, objects: state.objects });
-      } catch (persistErr) {
-        console.warn('Failed to persist state:', persistErr);
-      }
+      try { await saveLastState({ filename: state.filename, info: state.appInfo, objects: state.objects }); }
+      catch (persistErr) { console.warn('Failed to persist state:', persistErr); }
     } catch (err){
       console.error(err);
       hideProgress();
       setStatus('Failed to parse symbols');
       var infoEl = document.getElementById('appInfo');
       if (infoEl) infoEl.classList.add('hidden');
-        const copyBtn = document.getElementById('copyAppInfoBtn');
-        if (copyBtn) copyBtn.classList.add('hidden');
+      const copyBtn = document.getElementById('copyAppInfoBtn');
+      if (copyBtn) copyBtn.classList.add('hidden');
+      // If parsing failed, show overlay again for retry
+      landingOverlayEl?.classList.remove('hidden');
+    }
+  }
+
+  // Hook file input to shared handler
+  document.getElementById('fileInput').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    await processFile(file);
+  });
+
+  // Overlay interactions: click button to open file picker
+  overlayUploadBtn?.addEventListener('click', () => {
+    document.getElementById('fileInput')?.click();
+  });
+  // Drag & drop on overlay
+  landingOverlayEl?.addEventListener('dragover', (e) => {
+    e.preventDefault(); landingOverlayEl.classList.add('dragover');
+  });
+  landingOverlayEl?.addEventListener('dragleave', () => {
+    landingOverlayEl.classList.remove('dragover');
+  });
+  landingOverlayEl?.addEventListener('drop', (e) => {
+    e.preventDefault(); landingOverlayEl.classList.remove('dragover');
+    const files = e.dataTransfer?.files;
+    if (files && files.length) {
+      const f = files[0];
+      // Accept .app or .zip
+      const name = (f.name || '').toLowerCase();
+      if (name.endsWith('.app') || name.endsWith('.zip')) {
+        processFile(f);
+      } else {
+        setStatus('Please drop a .app (or .zip) file');
+      }
     }
   });
 
@@ -410,8 +436,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (firstType){ selectType(firstType); } else { selectType(''); }
         progressEl.value = 100;
         setStatus(`Restored ${state.objects.length} symbols from cache${state.filename ? ` (${state.filename})` : ''}`);
+        // Hide landing overlay when we have a restored session
+        landingOverlayEl?.classList.add('hidden');
       } else {
         setStatus('Ready');
+        // Show landing overlay on first visit / empty cache
+        landingOverlayEl?.classList.remove('hidden');
       }
     } catch (err) {
       console.warn('Auto-restore failed:', err);
