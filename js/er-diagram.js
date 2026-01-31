@@ -59,7 +59,8 @@ export function buildRelationGraph(selectedTable, allObjects) {
         const fields = rawFields.map(f => ({
             name: f.name || f.fieldName || '',
             type: f.type || f.dataType || '',
-            flowfield: !!f.flowfield || !!f.isFlowField
+            flowfield: !!f.flowfield || !!f.isFlowField,
+            relation: f.relation || f.tableRelation || f.Relation
         })).filter(f => f.name);
 
         return {
@@ -101,8 +102,9 @@ export function renderERDiagram(containerEl, graph) {
     const height = containerEl.clientHeight || 500;
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', String(width));
-    svg.setAttribute('height', String(height));
+    // Fill container; rely on viewBox for scaling when container resizes
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.style.background = 'var(--surface)';
 
@@ -130,49 +132,56 @@ export function renderERDiagram(containerEl, graph) {
     function updateTransform() { world.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`); }
     updateTransform();
 
-    // Layout: center + radial related nodes
+    // Layout: center + radial related nodes (or global grid)
     const cx = width / 2, cy = height / 2;
     const positions = new Map();
     const sizes = new Map();
     function computeNodeSize(node) {
         const baseH = 40;
-        const maxFields = 30;
+        const maxFields = 100;
         const h = baseH + Math.min(maxFields, (node.fields || []).length) * 14;
         return { w: 220, h };
     }
+    // Pre-compute sizes for all nodes to allow collision-safe layout
+    for (const n of graph.nodes) { sizes.set(n.name, computeNodeSize(n)); }
 
     if (graph.centerName) {
         const centerNode = graph.nodes[0];
-        const centerSize = computeNodeSize(centerNode);
-        sizes.set(centerNode.name, centerSize);
+        const centerSize = sizes.get(centerNode.name);
         positions.set(centerNode.name, { x: cx - centerSize.w / 2, y: cy - centerSize.h / 2 });
         const related = graph.nodes.slice(1);
-        const R = Math.min(width, height) / 2 - 160;
+        const maxRelatedH = related.length ? Math.max(...related.map(n => sizes.get(n.name).h)) : 0;
+        const baseR = Math.max(120, Math.min(width, height) / 2 - 160);
+        const R = baseR + Math.ceil(maxRelatedH / 2);
         const angleStep = related.length ? (2 * Math.PI) / related.length : 0;
         for (let i = 0; i < related.length; i++) {
             const node = related[i];
-            const sz = computeNodeSize(node);
-            sizes.set(node.name, sz);
+            const sz = sizes.get(node.name);
             const a = i * angleStep;
             const rx = cx + R * Math.cos(a) - sz.w / 2;
             const ry = cy + R * Math.sin(a) - sz.h / 2;
             positions.set(node.name, { x: rx, y: ry });
         }
     } else {
-        // Grid layout for global graph
+        // Grid layout with dynamic row heights to avoid vertical overlap
         const n = graph.nodes.length;
         const cols = Math.max(3, Math.ceil(Math.sqrt(n)));
         const padX = 40, padY = 40;
-        const cellW = 260, cellH = 200;
-        for (let i = 0; i < n; i++) {
-            const node = graph.nodes[i];
-            const sz = computeNodeSize(node);
-            sizes.set(node.name, sz);
-            const row = Math.floor(i / cols);
-            const col = i % cols;
-            const x = padX + col * cellW;
-            const y = padY + row * cellH;
-            positions.set(node.name, { x, y });
+        const cellW = 260;
+        let x = padX;
+        let y = padY;
+        for (let i = 0; i < n; ) {
+            let rowHeight = 0;
+            for (let col = 0; col < cols && i < n; col++, i++) {
+                const node = graph.nodes[i];
+                const sz = sizes.get(node.name);
+                positions.set(node.name, { x, y });
+                x += cellW;
+                rowHeight = Math.max(rowHeight, sz.h);
+            }
+            // move to next row
+            x = padX;
+            y += rowHeight + padY;
         }
     }
 
@@ -181,7 +190,7 @@ export function renderERDiagram(containerEl, graph) {
         const nodeSize = sizes.get(node.name) || { w: 220, h: 80 };
         const g = document.createElementNS(svg.namespaceURI, 'g');
         g.setAttribute('class', 'er-entity');
-        g.setAttribute('cursor', 'pointer');
+        g.setAttribute('cursor', 'move');
 
         const rect = document.createElementNS(svg.namespaceURI, 'rect');
         rect.setAttribute('x', String(pos.x)); rect.setAttribute('y', String(pos.y));
@@ -194,6 +203,8 @@ export function renderERDiagram(containerEl, graph) {
         const title = document.createElementNS(svg.namespaceURI, 'title');
         title.textContent = `${node.name}${node.keys ? `\nPK: ${node.keys.join(', ')}` : ''}`;
         rect.appendChild(title);
+        // Append background first so texts render above it
+        g.appendChild(rect);
 
         const nameText = document.createElementNS(svg.namespaceURI, 'text');
         nameText.setAttribute('x', String(pos.x + 12));
@@ -201,29 +212,50 @@ export function renderERDiagram(containerEl, graph) {
         nameText.setAttribute('fill', 'var(--text)');
         nameText.setAttribute('font-size', '14');
         nameText.setAttribute('font-weight', '700');
+        nameText.setAttribute('pointer-events', 'none');
         nameText.textContent = node.name;
 
-        let yCursor = pos.y + 42;
-        const pkLine = document.createElementNS(svg.namespaceURI, 'text');
-        pkLine.setAttribute('x', String(pos.x + 12));
-        pkLine.setAttribute('y', String(yCursor));
-        pkLine.setAttribute('fill', 'var(--muted)');
-        pkLine.setAttribute('font-size', '12');
-        pkLine.textContent = node.keys && node.keys.length ? `PK: ${node.keys.join(', ')}` : '';
-        yCursor += 18;
+        let yCursor = pos.y + 40;
 
         // Fields list (truncate)
-        const maxFields = 12;
+        const maxFields = 100;
         const fieldsToShow = (node.fields || []).slice(0, maxFields);
+        // Determine primary key fields set (normalized)
+        const pkSet = new Set((node.keys || []).map(n => String(n).replace(/"/g, '').toLowerCase()));
         for (const f of fieldsToShow) {
             const line = document.createElementNS(svg.namespaceURI, 'text');
             line.setAttribute('x', String(pos.x + 12));
             line.setAttribute('y', String(yCursor));
             line.setAttribute('fill', 'var(--text)');
             line.setAttribute('font-size', '12');
+            line.setAttribute('pointer-events', 'none');
+
+            const isPK = pkSet.has(String(f.name).replace(/"/g, '').toLowerCase());
+            const isFK = !!f.relation;
+
+            const icon = document.createElementNS(svg.namespaceURI, 'tspan');
+            if (isPK) { icon.textContent = '🔑 '; icon.setAttribute('fill', 'var(--primary)'); }
+            else if (isFK) { icon.textContent = '🗝 '; icon.setAttribute('fill', '#C0C0C0'); }
+            else { icon.textContent = '• '; icon.setAttribute('fill', 'var(--muted)'); }
+            line.appendChild(icon);
+
+       
+
+            const textSpan = document.createElementNS(svg.namespaceURI, 'tspan');
             const typeText = f.type ? `: ${f.type}` : '';
             const ffText = f.flowfield ? ' (FlowField)' : '';
-            line.textContent = `• ${f.name}${typeText}${ffText}`;
+            textSpan.textContent = `${f.name}${typeText}${ffText}`;
+            line.appendChild(textSpan);
+            if (isFK && f.relation) {
+                const info = parseTableRelation(f.relation);
+                const targetName = (info && info.targetName) ? info.targetName : '';
+                if (targetName) {
+                    const relSpan = document.createElementNS(svg.namespaceURI, 'tspan');
+                    relSpan.textContent += ` (${targetName})`;
+                    relSpan.setAttribute('fill', 'var(--muted)');
+                    line.appendChild(relSpan);
+                }
+            }
             g.appendChild(line);
             yCursor += 16;
         }
@@ -234,14 +266,21 @@ export function renderERDiagram(containerEl, graph) {
             more.setAttribute('y', String(yCursor));
             more.setAttribute('fill', 'var(--muted)');
             more.setAttribute('font-size', '12');
+            more.setAttribute('pointer-events', 'none');
             more.textContent = `… +${remaining} more`;
             g.appendChild(more);
         }
-
-        g.appendChild(rect);
         g.appendChild(nameText);
-        g.appendChild(pkLine);
         world.appendChild(g);
+
+        // Make individual entity draggable
+        g.addEventListener('mousedown', (evt) => {
+            evt.stopPropagation();
+            draggingNodeGroup = g;
+            draggingNodeName = node.name;
+            sx = evt.clientX; sy = evt.clientY;
+            svg.style.cursor = 'move';
+        });
     }
 
     function drawEdge(edge) {
@@ -264,6 +303,7 @@ export function renderERDiagram(containerEl, graph) {
         const mx = (x1 + x2) / 2; const my = (y1 + y2) / 2;
         label.setAttribute('x', String(mx + 6)); label.setAttribute('y', String(my - 6));
         label.setAttribute('fill', 'var(--muted)'); label.setAttribute('font-size', '12');
+        label.setAttribute('pointer-events', 'none');
         const mapText = (edge.mappings && edge.mappings.length)
             ? edge.mappings.map(m => `${m.source}→${m.target}`).join(', ')
             : edge.viaField || '';
@@ -274,13 +314,10 @@ export function renderERDiagram(containerEl, graph) {
     }
 
     // Draw
-    for (const n of graph.nodes) {
-        console.log(n);
-        drawEntity(n);
-    }
-    for (const e of graph.edges) drawEdge(e);
+    for (const n of graph.nodes) { drawEntity(n); }
+    // Relationship lines disabled per request; no edges drawn for now.
 
-    // Interactions: zoom (wheel) and pan (drag)
+    // Interactions: zoom (wheel), pan (drag), and entity drag
     svg.addEventListener('wheel', (evt) => {
         evt.preventDefault();
         const delta = Math.sign(evt.deltaY);
@@ -290,14 +327,33 @@ export function renderERDiagram(containerEl, graph) {
     }, { passive: false });
 
     let dragging = false, sx = 0, sy = 0;
+    let draggingNodeGroup = null, draggingNodeName = '';
     svg.addEventListener('mousedown', (evt) => { dragging = true; sx = evt.clientX; sy = evt.clientY; svg.style.cursor = 'move'; });
     window.addEventListener('mousemove', (evt) => {
-        if (!dragging) return;
         const dx = evt.clientX - sx; const dy = evt.clientY - sy;
         sx = evt.clientX; sy = evt.clientY;
-        tx += dx; ty += dy; updateTransform();
+        if (draggingNodeGroup && draggingNodeName) {
+            // Move the selected entity
+            const pos = positions.get(draggingNodeName);
+            if (pos) { positions.set(draggingNodeName, { x: pos.x + dx, y: pos.y + dy }); }
+            const rect = draggingNodeGroup.querySelector('rect');
+            if (rect) {
+                rect.setAttribute('x', String(Number(rect.getAttribute('x')) + dx));
+                rect.setAttribute('y', String(Number(rect.getAttribute('y')) + dy));
+            }
+            const texts = draggingNodeGroup.querySelectorAll('text');
+            texts.forEach(t => {
+                const x = Number(t.getAttribute('x') || '0');
+                const y = Number(t.getAttribute('y') || '0');
+                t.setAttribute('x', String(x + dx));
+                t.setAttribute('y', String(y + dy));
+            });
+        } else if (dragging) {
+            // Pan the whole world
+            tx += dx; ty += dy; updateTransform();
+        }
     });
-    window.addEventListener('mouseup', () => { dragging = false; svg.style.cursor = 'default'; });
+    window.addEventListener('mouseup', () => { dragging = false; draggingNodeGroup = null; draggingNodeName = ''; svg.style.cursor = 'default'; });
 
     containerEl.appendChild(svg);
 }
@@ -335,7 +391,8 @@ export function buildGlobalRelationGraph(allObjects) {
         const fields = rawFields.map(f => ({
             name: f.name || f.fieldName || '',
             type: f.type || f.dataType || '',
-            flowfield: !!f.flowfield || !!f.isFlowField
+            flowfield: !!f.flowfield || !!f.isFlowField,
+            relation: f.relation || f.tableRelation || f.Relation
         })).filter(f => f.name);
 
         return {

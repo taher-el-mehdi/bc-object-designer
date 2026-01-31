@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const appSettingsModalEl = document.getElementById('appSettingsModal');
     const erDiagramModalEl = document.getElementById('erDiagramModal');
     const erDiagramCloseBtn = document.getElementById('erDiagramCloseBtn');
+    const erDiagramFsBtn = document.getElementById('erDiagramFsBtn');
     const erDiagramContainerEl = document.getElementById('erDiagramContainer');
     const erLoadingMsgEl = document.getElementById('erLoadingMsg');
     const erDiagramTitleEl = document.getElementById('erDiagramTitle');
@@ -503,6 +504,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 30);
   });
   erDiagramCloseBtn?.addEventListener('click', () => { erDiagramModalEl?.classList.add('hidden'); });
+
+  // Fullscreen: toggle via button or F11
+  function isInFullscreen(){ return !!document.fullscreenElement; }
+  async function enterDiagramFullscreen(){
+    try {
+      if (erDiagramContainerEl?.requestFullscreen) {
+        await erDiagramContainerEl.requestFullscreen();
+        // Expand container to viewport while in fullscreen
+        erDiagramContainerEl.style.width = '100vw';
+        erDiagramContainerEl.style.height = '100vh';
+      }
+    } catch {}
+  }
+  async function exitDiagramFullscreen(){
+    try {
+      if (document.exitFullscreen) await document.exitFullscreen();
+    } catch {}
+  }
+  erDiagramFsBtn?.addEventListener('click', async () => {
+    if (!isInFullscreen()) await enterDiagramFullscreen(); else await exitDiagramFullscreen();
+  });
+  // Keyboard F11 toggle while modal is open
+  window.addEventListener('keydown', async (e) => {
+    if (erDiagramModalEl?.classList.contains('hidden')) return;
+    if (e.key === 'F11'){
+      e.preventDefault();
+      if (!isInFullscreen()) await enterDiagramFullscreen(); else await exitDiagramFullscreen();
+    }
+  });
+  // Cleanup styles on fullscreen exit
+  document.addEventListener('fullscreenchange', () => {
+    if (!isInFullscreen() && erDiagramContainerEl){
+      erDiagramContainerEl.style.width = '';
+      erDiagramContainerEl.style.height = '';
+    }
+  });
 
   // Resizer logic (vertical split between list and code)
   (function initResizer(){

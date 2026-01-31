@@ -125,7 +125,7 @@ async function readSymbolsJson(file){
     const name = sym.Name || sym.name || sym.ObjectName || sym.objectName || '';
     const caption = sym.Caption || sym.caption;
 
-    const members = sym.Members || sym.members || sym.Fields || sym.fields || [];
+    const members = sym.Members || sym.members || [];
     const fields = [];
     const controls = [];
     const actions = [];
@@ -133,7 +133,62 @@ async function readSymbolsJson(file){
     const values = [];
     let relations = [];
 
-    if (Array.isArray(members)){
+    // Helper: property retrieval across different shapes/casing
+    function getProp(obj, names){
+      for (const n of names){
+        const v = obj[n]; if (v !== undefined) return v;
+        const lc = obj[n?.toLowerCase?.() || n]; if (lc !== undefined) return lc;
+      }
+      const props = obj.Properties || obj.properties;
+      if (props && typeof props === 'object'){
+        if (Array.isArray(props)){
+          for (const p of props){
+            const pn = String(p.Name || p.name || '');
+            if (names.some(nn => pn.toLowerCase() === nn.toLowerCase())){ return p.Value ?? p.value; }
+          }
+        } else {
+          for (const nn of names){
+            const v = props[nn] ?? props[nn.toLowerCase?.() || nn];
+            if (v !== undefined) return v;
+          }
+        }
+      }
+      return undefined;
+    }
+
+    // Robust field extraction for Tables and TableExtensions
+    function extractTableFields(src){
+      const out = [];
+      const arrays = [];
+      if (Array.isArray(src.Fields)) arrays.push(src.Fields);
+      if (Array.isArray(src.fields)) arrays.push(src.fields);
+      if (Array.isArray(members)) arrays.push(members);
+      for (const arr of arrays){
+        for (const f of arr){
+          const mkind = String(f.Kind || f.kind || f.Type || f.type || '');
+          const isLikelyField = /field|column/i.test(mkind) || (!!(f.Name || f.name) && (f.TypeDefinition || f.Type || f.type));
+          if (!isLikelyField) continue;
+          const fid = Number(f.Id || f.id || 0) || undefined;
+          const fname = f.Name || f.name || '';
+          const fcaption = f.Caption || f.caption;
+          const ftype = (f.TypeDefinition && f.TypeDefinition.Name) || f.Type || f.type || undefined;
+          const frel = getProp(f, ['TableRelation','Relation']);
+          const isFF = /flowfield/i.test(String(getProp(f, ['FieldClass','Class']) || '')) || !!getProp(f, ['CalcFormula']);
+          out.push({ id: fid, name: fname, caption: fcaption, type: ftype, relation: frel, flowfield: isFF });
+          if (frel) relations.push({ field: fname, relation: frel });
+        }
+      }
+      const seen = new Set(); const uniq = [];
+      for (const x of out){
+        const k = `${x.id ?? ''}|${(x.name||'').toLowerCase()}`;
+        if (seen.has(k)) continue; seen.add(k); uniq.push(x);
+      }
+      return uniq;
+    }
+
+    if (/^table$/i.test(kind) || /^tableextension$/i.test(kind)){
+      fields.push(...extractTableFields(sym));
+    } else if (Array.isArray(members)){
       for (const m of members){
         const mkind = String(m.Kind || m.kind || m.Type || m.type || '');
         const mid = Number(m.Id || m.id || 0) || undefined;
@@ -199,7 +254,13 @@ async function readSymbolsJson(file){
     // Try to capture embedded source text when available
     const sourceText = sym.Source || sym.SourceText || sym.SourceCode || sym.Content || undefined;
 
-    return { type: kind, id, name, caption, fields, controls, actions, keys, values, relations, refSrc, properties, sourceText };
+    // Capture extension target for TableExtension
+    let extendsTarget = undefined;
+    if (/^tableextension$/i.test(kind)){
+      extendsTarget = sym.TargetTable || sym.Target || sym.TargetObject || undefined;
+    }
+
+    return { type: kind, id, name, caption, fields, controls, actions, keys, values, relations, refSrc, properties, sourceText, extendsTarget };
   }
 
   /**
@@ -518,6 +579,8 @@ async function readSymbolsJson(file){
         // Silent failure: Source may not be available
       }
     }
+    // Merge TableExtensions into base Tables for unified schema
+    objects = mergeTableExtensions(objects);
     return { raw, objects };
   }
 
@@ -540,4 +603,39 @@ async function readSymbolsJson(file){
     const s = String(path || '');
     const parts = s.split(/[\\\/]/);
     return parts[parts.length - 1] || s;
+  }
+
+  /**
+   * Merge TableExtension content into base Tables (fields, keys, relations).
+   * Keeps TableExtension entries intact while updating Tables.
+   */
+  function mergeTableExtensions(objects){
+    const tables = objects.filter(o => String(o.type) === 'Table');
+    const exts = objects.filter(o => String(o.type) === 'TableExtension');
+    const byName = new Map();
+    const byId = new Map();
+    for (const t of tables){
+      const nm = String(t.name || '').replace(/"/g, '').toLowerCase();
+      byName.set(nm, t);
+      if (t.id != null) byId.set(Number(t.id), t);
+    }
+    for (const e of exts){
+      let target = e.extendsTarget;
+      if (!target){
+        const prop = (e.properties || []).find(p => String(p.key || '').toLowerCase().includes('target'));
+        target = prop?.val;
+      }
+      let base = undefined;
+      if (typeof target === 'number'){
+        base = byId.get(Number(target));
+      } else if (typeof target === 'string'){
+        const key = target.replace(/"/g, '').toLowerCase();
+        base = byName.get(key) || (Number(target) ? byId.get(Number(target)) : undefined);
+      }
+      if (!base) continue;
+      base.fields = [...(base.fields || []), ...(e.fields || [])];
+      base.keys = [...(base.keys || []), ...(e.keys || [])];
+      base.relations = [...(base.relations || []), ...(e.relations || [])];
+    }
+    return objects;
   }
