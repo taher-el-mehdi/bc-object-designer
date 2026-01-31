@@ -128,10 +128,34 @@ body {
   padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--surface); font-weight: 600;
 }
 .types-list { flex: 1; overflow: auto; }
-.type-item { padding: 8px 12px; cursor: pointer; user-select: none; }
+.type-item { padding: 8px 12px; cursor: pointer; user-select: none; display:flex; align-items:center; gap:8px; }
 .type-item:hover { background: var(--hover); }
 .type-item.selected { background: var(--selection); }
 .type-item .name { color: var(--text); }
+
+/* Type icons (emoji-based for simplicity) */
+.type-icon { width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; }
+.type-icon::before { font-size:14px; line-height:16px; }
+.type-default::before { content: '📦'; }
+.type-table::before { content: '📋'; }
+.type-page::before { content: '📄'; }
+.type-report::before { content: '📑'; }
+.type-reportext::before { content: '🧩'; }
+.type-xmlport::before { content: '🗂️'; }
+.type-query::before { content: '🔎'; }
+.type-codeunit::before { content: '🧠'; }
+.type-controladdin::before { content: '🧩'; }
+.type-enum::before { content: '🏷️'; }
+.type-enumext::before { content: '➕'; }
+.type-interface::before { content: '🔌'; }
+.type-pageext::before { content: '🧩'; }
+.type-tableext::before { content: '🧩'; }
+.type-permissionset::before { content: '🔐'; }
+.type-permissionsetext::before { content: '🔐'; }
+.type-profile::before { content: '👤'; }
+.type-pagecustom::before { content: '⚙️'; }
+.type-entitlement::before { content: '🎟️'; }
+.type-dotnet::before { content: '🧬'; }
 
 /* Sidebar footer app info */
 .sidebarfooter { border-top: 1px solid var(--border); padding: 8px 10px; }
@@ -174,6 +198,7 @@ input[type="text"]:focus, input[type="file"]:focus { outline: none; box-shadow: 
 .object-table { width: 100%; border-collapse: collapse; }
 .object-table thead th { text-align: left; font-weight: 600; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .object-table tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.object-table tbody tr { cursor: pointer; }
 .object-table tbody tr:hover { background: var(--hover); }
 .object-table tbody tr.selected { background: var(--selection); }
 .object-table tbody tr:focus-within { background: var(--selection); }

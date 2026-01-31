@@ -28,25 +28,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '' };
 
   function updateAppInfo(raw){
-    var infoEl = document.getElementById('appInfo');
-    if (!infoEl) return;
-    var name = raw && (raw.Name || raw.name) || '';
-    var version = raw && (raw.Version || raw.version) || '';
-    var publisher = raw && (raw.Publisher || raw.publisher) || '';
-    var appId = raw && (raw.AppId || raw.appId || raw.AppID) || '';
-    var nEl = document.getElementById('appName');
-    var vEl = document.getElementById('appVersion');
-    var pEl = document.getElementById('appPublisher');
-    var iEl = document.getElementById('appId');
-    if (nEl) nEl.textContent = name || '';
-    if (vEl) vEl.textContent = version || '';
-    if (pEl) pEl.textContent = publisher || '';
-    if (iEl) iEl.textContent = appId || '';
-    var hasAny = !!(name || version || publisher || appId);
-    if (hasAny) infoEl.classList.remove('hidden'); else infoEl.classList.add('hidden');
+    const name = raw && (raw.Name || raw.name) || '';
+    const version = raw && (raw.Version || raw.version) || '';
+    const publisher = raw && (raw.Publisher || raw.publisher) || '';
+    const appId = raw && (raw.AppId || raw.appId || raw.AppID) || '';
+    const hasAny = !!(name || version || publisher || appId);
 
     // Update centered uploaded app name
-    var uploadedNameEl = document.getElementById('uploadedAppName');
+    const uploadedNameEl = document.getElementById('uploadedAppName');
     if (uploadedNameEl) uploadedNameEl.textContent = name || '';
 
     // Store app info and toggle copy button visibility
@@ -63,11 +52,37 @@ document.addEventListener('DOMContentLoaded', () => {
       typesSidebarEl.textContent = 'Load a .app package to begin…';
       return;
     }
+    const TYPE_ICON_MAP = {
+      'Table': 'table',
+      'Page': 'page',
+      'Report': 'report',
+      'XmlPort': 'xmlport',
+      'Query': 'query',
+      'Codeunit': 'codeunit',
+      'ControlAddIn': 'controladdin',
+      'Enum': 'enum',
+      'EnumType': 'enum',
+      'EnumExtension': 'enumext',
+      'Interface': 'interface',
+      'ReportExtension': 'reportext',
+      'PageExtension': 'pageext',
+      'TableExtension': 'tableext',
+      'PermissionSet': 'permissionset',
+      'PermissionSetExtension': 'permissionsetext',
+      'Profile': 'profile',
+      'PageCustomization': 'pagecustom',
+      'Entitlement': 'entitlement',
+      'DotNetPackage': 'dotnet'
+    };
     const frag = document.createDocumentFragment();
     for (const g of groups){
       const item = document.createElement('div');
       item.className = 'type-item';
       item.dataset.type = g.type;
+      const iconName = TYPE_ICON_MAP[g.type] || 'default';
+      const iconEl = document.createElement('span');
+      iconEl.className = 'type-icon type-' + iconName;
+      item.appendChild(iconEl);
       const nameEl = document.createElement('span');
       nameEl.className = 'name';
       nameEl.textContent = `${g.type} (${g.items?.length ?? 0})`;
@@ -340,8 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error(err);
       hideProgress();
       setStatus('Failed to parse symbols');
-      var infoEl = document.getElementById('appInfo');
-      if (infoEl) infoEl.classList.add('hidden');
       const copyBtn = document.getElementById('copyAppInfoBtn');
       if (copyBtn) copyBtn.classList.add('hidden');
       // If parsing failed, show overlay again for retry
@@ -396,8 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state = { objects: [], groups: [], filename: '', selectedType: '' };
         if (typesSidebarEl) typesSidebarEl.innerHTML = 'Load a .app package to begin…';
         renderObjectList('');
-        const infoEl = document.getElementById('appInfo');
-        if (infoEl) infoEl.classList.add('hidden');
+        // badges removed; only toggle copy button
         const copyBtn = document.getElementById('copyAppInfoBtn');
         if (copyBtn) { copyBtn.classList.add('hidden'); copyBtn.classList.remove('copy-success'); copyBtn.textContent = 'Copy app info JSON'; }
         const uploadedNameEl = document.getElementById('uploadedAppName');
