@@ -220,6 +220,15 @@ input[type="text"]:focus, input[type="file"]:focus { outline: none; box-shadow: 
 /* Code viewer split */
 .hresizer { height: 6px; cursor: row-resize; background: var(--border); }
 .codepanel { flex: 0 0 40%; display: flex; flex-direction: column; border-top: 1px solid var(--border); }
+.codepanel.fullscreen { flex: 1 1 auto; border-top: 0; }
+
+/* Modal */
+.modal { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.35); z-index: 30; }
+.modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 560px; max-width: 92%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; flex-direction: column; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.modal-title { font-weight: 700; }
+.modal-body { padding: 12px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
 .codehdr { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .codetitle { font-weight: 600; }
 .codetools { display: flex; gap: 6px; }

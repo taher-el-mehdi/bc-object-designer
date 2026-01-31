@@ -50,7 +50,7 @@
       <div class="sidebarhdr">Object Types</div>
       <div id="typesSidebar" class="types-list" tabindex="1">Load a .app package to begin…</div>
       <div class="sidebarfooter">
-        <button id="copyAppInfoBtn" class="copy-btn hidden" title="Copy app info as JSON">Copy app info as JSON</button>
+        <button id="settingsBtn" class="tbarbtn hidden" title="Open application settings">⚙ Application settings</button>
       </div>
     </aside>
     <main id="mainPanel" class="mainpanel" aria-label="Object list">
@@ -89,5 +89,30 @@
   
   <!-- App entry (ES modules will import dependencies) -->
   <script type="module" src="./js/app.js"></script>
+
+  <!-- Application Settings Modal -->
+  <div id="appSettingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="appSettingsTitle">
+    <div class="modal-content" role="document">
+      <div class="modal-header">
+        <div id="appSettingsTitle" class="modal-title">Application settings</div>
+        <button id="appSettingsCloseBtn" class="tbarbtn" title="Close settings">Close</button>
+      </div>
+      <div class="modal-body">
+        <table class="propstable" aria-label="Application information">
+          <tbody>
+            <tr><td class="key">Name</td><td class="val" id="appNameVal"></td></tr>
+            <tr><td class="key">Publisher</td><td class="val" id="appPublisherVal"></td></tr>
+            <tr><td class="key">Version</td><td class="val" id="appVersionVal"></td></tr>
+            <tr><td class="key">App ID</td><td class="val" id="appIdVal"></td></tr>
+            <tr><td class="key">Filename</td><td class="val" id="appFilenameVal"></td></tr>
+            <tr><td class="key">Symbol count</td><td class="val" id="appSymbolCountVal"></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button id="copyAppInfoModalBtn" class="tbarbtn" title="Copy app info as JSON">Copy app info as JSON</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

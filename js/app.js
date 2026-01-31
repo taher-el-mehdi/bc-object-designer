@@ -20,6 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const overlayUploadBtn = document.getElementById('overlayUploadBtn');
   const globalSearchEl = document.getElementById('globalSearch');
   const clearSearchBtn = document.getElementById('clearSearchBtn');
+  const listWrapEl = document.querySelector('.listwrap');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const appSettingsModalEl = document.getElementById('appSettingsModal');
+  const appSettingsCloseBtn = document.getElementById('appSettingsCloseBtn');
+  const copyAppInfoModalBtn = document.getElementById('copyAppInfoModalBtn');
+  const appNameValEl = document.getElementById('appNameVal');
+  const appPublisherValEl = document.getElementById('appPublisherVal');
+  const appVersionValEl = document.getElementById('appVersionVal');
+  const appIdValEl = document.getElementById('appIdVal');
+  const appFilenameValEl = document.getElementById('appFilenameVal');
+  const appSymbolCountValEl = document.getElementById('appSymbolCountVal');
 
   function setStatus(text){ document.getElementById('status').textContent = text; }
 
@@ -42,8 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Store app info and toggle copy button visibility
     state.appInfo = hasAny ? { AppId: appId || undefined, Name: name || undefined, Publisher: publisher || undefined, Version: version || undefined } : null;
-    const copyBtn = document.getElementById('copyAppInfoBtn');
-    if (copyBtn) copyBtn.classList.toggle('hidden', !hasAny);
+    if (settingsBtn) settingsBtn.classList.toggle('hidden', !hasAny);
   }
 
   // Sidebar rendering: list all available types
@@ -380,16 +390,37 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showCodePanel(){
-    if (!codePanelEl || !listCodeResizerEl) return;
-    listCodeResizerEl.classList.remove('hidden');
+    if (!codePanelEl) return;
+    // Always open in fullscreen: hide list and resizer
+    codePanelEl.classList.add('fullscreen');
     codePanelEl.classList.remove('hidden');
+    if (listCodeResizerEl) listCodeResizerEl.classList.add('hidden');
+    if (listWrapEl) listWrapEl.classList.add('hidden');
   }
 
   function hideCodePanel(){
-    if (!codePanelEl || !listCodeResizerEl) return;
-    listCodeResizerEl.classList.add('hidden');
+    if (!codePanelEl) return;
+    // Restore list view and hide code panel
     codePanelEl.classList.add('hidden');
+    codePanelEl.classList.remove('fullscreen');
+    if (listWrapEl) listWrapEl.classList.remove('hidden');
+    if (listCodeResizerEl) listCodeResizerEl.classList.add('hidden');
   }
+
+  // Application settings modal helpers
+  function openSettingsModal(){
+    if (!appSettingsModalEl) return;
+    // Populate fields
+    const info = state.appInfo || {};
+    if (appNameValEl) appNameValEl.textContent = info.Name || '';
+    if (appPublisherValEl) appPublisherValEl.textContent = info.Publisher || '';
+    if (appVersionValEl) appVersionValEl.textContent = info.Version || '';
+    if (appIdValEl) appIdValEl.textContent = info.AppId || '';
+    if (appFilenameValEl) appFilenameValEl.textContent = state.filename || '';
+    if (appSymbolCountValEl) appSymbolCountValEl.textContent = String((state.objects || []).length || 0);
+    appSettingsModalEl.classList.remove('hidden');
+  }
+  function closeSettingsModal(){ appSettingsModalEl?.classList.add('hidden'); }
 
   function showNoSourceMsg(){ noSourceMsgEl?.classList.remove('hidden'); }
   function hideNoSourceMsg(){ noSourceMsgEl?.classList.add('hidden'); }
@@ -506,8 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error(err);
       hideProgress();
       setStatus('Failed to parse symbols');
-      const copyBtn = document.getElementById('copyAppInfoBtn');
-      if (copyBtn) copyBtn.classList.add('hidden');
+      if (settingsBtn) settingsBtn.classList.add('hidden');
       // If parsing failed, show overlay again for retry
       landingOverlayEl?.classList.remove('hidden');
     }
@@ -562,9 +592,8 @@ document.addEventListener('DOMContentLoaded', () => {
         state = { objects: [], groups: [], filename: '', selectedType: '' };
         if (typesSidebarEl) typesSidebarEl.innerHTML = 'Load a .app package to begin…';
         renderObjectList('');
-        // badges removed; only toggle copy button
-        const copyBtn = document.getElementById('copyAppInfoBtn');
-        if (copyBtn) { copyBtn.classList.add('hidden'); copyBtn.classList.remove('copy-success'); copyBtn.textContent = 'Copy app info JSON'; }
+        // Toggle settings button
+        if (settingsBtn) { settingsBtn.classList.add('hidden'); }
         const uploadedNameEl = document.getElementById('uploadedAppName');
         if (uploadedNameEl) uploadedNameEl.textContent = '';
         selectedTypeNameEl.textContent = 'No type selected';
@@ -618,31 +647,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
-  // Copy app info JSON to clipboard
-  const copyAppInfoBtn = document.getElementById('copyAppInfoBtn');
-  if (copyAppInfoBtn) {
-    copyAppInfoBtn.addEventListener('click', async () => {
-      try {
-        const info = state.appInfo || {};
-        const payload = {
-          id: info.AppId || '',
-          name: info.Name || '',
-          publisher: info.Publisher || '',
-          version: info.Version || ''
-        };
-        await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-        const prev = copyAppInfoBtn.textContent;
-        copyAppInfoBtn.textContent = 'Copied!';
-        copyAppInfoBtn.classList.add('copy-success');
-        setTimeout(() => {
-          copyAppInfoBtn.textContent = prev || 'Copy app info JSON';
-          copyAppInfoBtn.classList.remove('copy-success');
-        }, 1500);
-      } catch (err) {
-        setStatus('Failed to copy app info');
-      }
-    });
-  }
+  // Settings button opens modal
+  settingsBtn?.addEventListener('click', () => { openSettingsModal(); });
+  // Close modal
+  appSettingsCloseBtn?.addEventListener('click', () => { closeSettingsModal(); });
+  // Copy app info JSON from modal
+  copyAppInfoModalBtn?.addEventListener('click', async () => {
+    try {
+      const info = state.appInfo || {};
+      const payload = {
+        id: info.AppId || '',
+        name: info.Name || '',
+        publisher: info.Publisher || '',
+        version: info.Version || ''
+      };
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      const prev = copyAppInfoModalBtn.textContent;
+      copyAppInfoModalBtn.textContent = 'Copied!';
+      copyAppInfoModalBtn.classList.add('copy-success');
+      setTimeout(() => {
+        copyAppInfoModalBtn.textContent = prev || 'Copy app info as JSON';
+        copyAppInfoModalBtn.classList.remove('copy-success');
+      }, 1500);
+    } catch (err) {
+      setStatus('Failed to copy app info');
+    }
+  });
 });
 
 // Render selected object's properties in the left panel table
