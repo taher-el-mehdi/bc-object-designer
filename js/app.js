@@ -73,10 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('erDiagramModal')?.addEventListener('click', () => closeSidebar());
   document.getElementById('layoutModal')?.addEventListener('click', () => closeSidebar());
 
-  // Show application version in the top bar
-  const versionEl = document.getElementById('toolVersion');
-  if (versionEl) { versionEl.textContent = `bc-object-designer v: ${APP_VERSION}`; }
-
   let state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false, currentObject: null, currentLayout: null, layoutViewMode: 'visual' };
 
   // Attempt to extract RuntimeVersion from raw metadata
@@ -130,6 +126,29 @@ document.addEventListener('DOMContentLoaded', () => {
       typesSidebarEl.textContent = 'Load a .app package to begin…';
       return;
     }
+    // Preferred order for object types in the sidebar
+    const ORDER = [
+      'Table',
+      'TableExtension',
+      'Page',
+      'PageExtension',
+      'Enum',
+      'EnumType',
+      'EnumExtension',
+      'Report',
+      'ReportExtension',
+      'Codeunit',
+      'Query',
+      'XmlPort'
+    ];
+    const sortedGroups = [...groups].sort((a, b) => {
+      const ia = ORDER.indexOf(a.type);
+      const ib = ORDER.indexOf(b.type);
+      if (ia === -1 && ib === -1) return a.type.localeCompare(b.type);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
     const TYPE_ICON_MAP = {
       'Table': 'table',
       'Page': 'page',
@@ -153,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'DotNetPackage': 'dotnet'
     };
     const frag = document.createDocumentFragment();
-    for (const g of groups){
+    for (const g of sortedGroups){
       const item = document.createElement('div');
       item.className = 'type-item';
       item.dataset.type = g.type;
@@ -258,6 +277,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     objectTableEl.classList.remove('hidden');
     emptyListMsgEl.classList.add('hidden');
+    // Sort by ID ascending (numeric); non-numeric IDs go last
+    results.sort((a, b) => {
+      const ai = typeof a.id === 'number' ? a.id : Number(a.id);
+      const bi = typeof b.id === 'number' ? b.id : Number(b.id);
+      const av = Number.isFinite(ai) ? ai : Number.POSITIVE_INFINITY;
+      const bv = Number.isFinite(bi) ? bi : Number.POSITIVE_INFINITY;
+      return av - bv;
+    });
     const frag = document.createDocumentFragment();
     for (const o of results){
       const tr = document.createElement('tr');
@@ -336,8 +363,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     objectTableEl.classList.remove('hidden');
     emptyListMsgEl.classList.add('hidden');
+    // Sort items by ID ascending (numeric); non-numeric IDs go last
+    const items = [...group.items].sort((a, b) => {
+      const ai = typeof a.id === 'number' ? a.id : Number(a.id);
+      const bi = typeof b.id === 'number' ? b.id : Number(b.id);
+      const av = Number.isFinite(ai) ? ai : Number.POSITIVE_INFINITY;
+      const bv = Number.isFinite(bi) ? bi : Number.POSITIVE_INFINITY;
+      return av - bv;
+    });
     const frag = document.createDocumentFragment();
-    for (const o of group.items){
+    for (const o of items){
       const tr = document.createElement('tr');
       tr.tabIndex = 0;
       tr.dataset.type = group.type;
@@ -1033,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstType = state.groups[0]?.type;
         if (firstType){ selectType(firstType); } else { selectType(''); }
         progressEl.value = 100;
-        setStatus(`Restored ${state.objects.length} symbols from cache${state.filename ? ` (${state.filename})` : ''}`);
+        setStatus(`Restored ${state.objects.length} symbols from ${state.filename ? ` (${state.filename})` : ''}`);
         // Hide landing overlay when we have a restored session
         landingOverlayEl?.classList.add('hidden');
         bodyEl?.classList.remove('overlay-active');
