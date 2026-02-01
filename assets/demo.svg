@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-label="BC object designer demo">
+  <defs>
+    <style>
+      .bg { fill: #0f172a; }
+      .bar { fill: #111827; }
+      .panel { fill: #1f2937; stroke: #374151; }
+      .accent { fill: #22c55e; }
+      .muted { fill: #94a3b8; }
+      .text { fill: #e5e7eb; font-family: Segoe UI, Tahoma, Arial, sans-serif; }
+      .mono { font-family: Consolas, Menlo, monospace; }
+      .btn { fill: #374151; stroke: #4b5563; }
+      .badge { fill: #111827; stroke: #374151; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1200" height="720" class="bg" />
+
+  <!-- Top bar -->
+  <rect x="0" y="0" width="1200" height="56" class="bar" />
+  <text x="72" y="34" class="text" font-size="20" font-weight="700">BC object designer</text>
+  <rect x="16" y="14" width="36" height="28" rx="6" class="btn" />
+  <text x="28" y="32" class="text" font-size="16">☰</text>
+  <rect x="980" y="14" width="110" height="28" rx="6" class="btn" />
+  <text x="995" y="32" class="text" font-size="14">Clear cache</text>
+  <rect x="704" y="14" width="260" height="28" rx="6" class="btn" />
+  <text x="716" y="32" class="text" font-size="14">Search…</text>
+  <rect x="968" y="52" width="100" height="0" class="accent" />
+
+  <!-- Sidebar -->
+  <rect x="0" y="56" width="260" height="664" class="panel" />
+  <text x="20" y="84" class="text" font-size="16" font-weight="600">Object Types</text>
+  <!-- Sidebar items -->
+  <g>
+    <rect x="12" y="100" width="236" height="32" rx="6" class="btn" />
+    <text x="24" y="122" class="text" font-size="14">Table (134)</text>
+    <rect x="12" y="140" width="236" height="32" rx="6" class="btn" />
+    <text x="24" y="162" class="text" font-size="14">Page (210)</text>
+    <rect x="12" y="180" width="236" height="32" rx="6" class="btn" />
+    <text x="24" y="202" class="text" font-size="14">Report (58)</text>
+    <rect x="12" y="220" width="236" height="32" rx="6" class="btn" />
+    <text x="24" y="242" class="text" font-size="14">Codeunit (320)</text>
+    <rect x="12" y="260" width="236" height="32" rx="6" class="btn" />
+    <text x="24" y="282" class="text" font-size="14">Enum (42)</text>
+    <rect x="12" y="300" width="236" height="32" rx="6" class="btn" />
+    <text x="24" y="322" class="text" font-size="14">Query (19)</text>
+  </g>
+
+  <!-- Main list panel -->
+  <rect x="260" y="56" width="520" height="360" class="panel" />
+  <text x="280" y="84" class="text" font-size="16" font-weight="600">Table</text>
+  <!-- Table header -->
+  <rect x="272" y="100" width="492" height="32" rx="6" class="btn" />
+  <text x="292" y="122" class="text" font-size="14">ID</text>
+  <text x="392" y="122" class="text" font-size="14">Name</text>
+  <!-- Rows -->
+  <g>
+    <rect x="272" y="140" width="492" height="32" rx="6" class="btn" />
+    <text x="292" y="162" class="text" font-size="14">18</text>
+    <text x="392" y="162" class="text" font-size="14">Customer</text>
+    <rect x="272" y="180" width="492" height="32" rx="6" class="btn" />
+    <text x="292" y="202" class="text" font-size="14">36</text>
+    <text x="392" y="202" class="text" font-size="14">Vendor</text>
+    <rect x="272" y="220" width="492" height="32" rx="6" class="btn" />
+    <text x="292" y="242" class="text" font-size="14">21</text>
+    <text x="392" y="242" class="text" font-size="14">Item</text>
+  </g>
+
+  <!-- Code panel -->
+  <rect x="260" y="420" width="520" height="300" class="panel" />
+  <text x="280" y="448" class="text" font-size="16" font-weight="600">Table #18 · Customer</text>
+  <rect x="272" y="462" width="492" height="28" rx="6" class="btn" />
+  <text x="282" y="480" class="text" font-size="13">Copy</text>
+  <rect x="272" y="496" width="492" height="200" rx="6" class="bar" />
+  <text x="284" y="520" class="text mono" font-size="13">table 18 "Customer"</text>
+  <text x="284" y="540" class="text mono" font-size="13">{</text>
+  <text x="300" y="560" class="text mono" font-size="13">fields</text>
+  <text x="300" y="580" class="text mono" font-size="13">{</text>
+  <text x="316" y="600" class="text mono" font-size="13">field(1; "No.") Code {}</text>
+  <text x="316" y="620" class="text mono" font-size="13">field(2; Name) Text {}</text>
+  <text x="300" y="640" class="text mono" font-size="13">}</text>
+  <text x="284" y="660" class="text mono" font-size="13">}</text>
+
+  <!-- ER Diagram modal preview (thumbnail) -->
+  <rect x="800" y="56" width="384" height="280" class="panel" />
+  <text x="820" y="84" class="text" font-size="16" font-weight="600">ER Diagram</text>
+  <rect x="820" y="100" width="344" height="220" class="badge" />
+  <!-- Simple nodes -->
+  <rect x="840" y="120" width="140" height="80" rx="8" class="btn" />
+  <text x="852" y="144" class="text" font-size="14" font-weight="700">Customer</text>
+  <text x="852" y="164" class="text" font-size="12">🔑 No.</text>
+  <rect x="1000" y="180" width="140" height="80" rx="8" class="btn" />
+  <text x="1012" y="204" class="text" font-size="14" font-weight="700">Sales Header</text>
+  <text x="1012" y="224" class="text" font-size="12">🗝 Sell-to No.</text>
+  <line x1="980" y1="160" x2="1000" y2="200" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Report Layout preview (thumbnail) -->
+  <rect x="800" y="356" width="384" height="364" class="panel" />
+  <text x="820" y="384" class="text" font-size="16" font-weight="600">Report Layout</text>
+  <rect x="820" y="400" width="344" height="300" class="badge" />
+  <rect x="832" y="412" width="320" height="24" class="btn" />
+  <text x="842" y="430" class="text" font-size="12">Layout.rdlc</text>
+  <rect x="832" y="442" width="320" height="240" class="bar" />
+  <text x="842" y="462" class="text" font-size="12">[Visual RDLC preview]</text>
+
+  <!-- Footer privacy notice -->
+  <text x="20" y="708" class="muted" font-size="12">This tool runs fully in your browser. No backend processing.</text>
+</svg>
