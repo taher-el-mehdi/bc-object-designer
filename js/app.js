@@ -527,7 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         viewLayoutBtn.disabled = !(obj.rdlcLayout || obj.wordLayout);
         viewLayoutBtn.title = obj.rdlcLayout || obj.wordLayout || 'No layout referenced';
         viewLayoutBtn.onclick = async (e) => {
-          console.log(obj);
           e?.stopPropagation?.();
           await openReportLayout(obj);
         };
@@ -938,7 +937,6 @@ document.addEventListener('DOMContentLoaded', () => {
       setProgress(100);
       setStatus('Parsing symbols…');
       const { raw, objects } = await parseAppFile(arrayBuf);
-      console.log(raw);
       updateAppInfo(raw);
 
       state.objects = Array.isArray(objects) ? objects : [];

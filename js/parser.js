@@ -556,7 +556,6 @@ async function readSymbolsJson(file){
    */
   async function parseAppFile(file){
     const { json: raw, zip } = await readSymbolsJson(file);
-    console.log(raw);
     let objects = [];
     // Prefer 'Symbols' arrays if present
     const arrays = [];
