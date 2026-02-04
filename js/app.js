@@ -8,6 +8,9 @@ import { generatePseudoAL } from './alsyntax.js';
 
 // Entry point for the client-side AL Explorer
 document.addEventListener('DOMContentLoaded', () => {
+  // Hide topbar initially until we check for cached data
+  document.body.classList.add('overlay-active');
+  
   const typesSidebarEl = document.getElementById('typesSidebar');
   const selectedTypeNameEl = document.getElementById('selectedTypeName');
   const objectTableEl = document.getElementById('objectTable');
@@ -1082,14 +1085,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (clearBtn) {
     clearBtn.addEventListener('click', async () => {
       setStatus('Clearing cache…');
-      const progressEl = document.getElementById('uploadProgress');
-      progressEl.classList.remove('hidden');
-      progressEl.value = 0;
+      const progressContainer = document.getElementById('progressContainer');
+      progressContainer?.classList.remove('hidden');
+      const progressBarFill = document.getElementById('progressBarFill');
+      const progressPercent = document.getElementById('progressPercent');
+      if (progressBarFill) progressBarFill.style.width = '0%';
+      if (progressPercent) progressPercent.textContent = '0%';
       try {
         await clearLastState();
         state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false, currentObject: null, currentLayout: null, layoutViewMode: 'visual' };
         if (typesSidebarEl) typesSidebarEl.innerHTML = 'Load a .app package to begin…';
         renderObjectList('');
+        hideCodePanel();
         // Toggle settings button
         if (settingsBtn) { settingsBtn.classList.add('hidden'); }
         const uploadedNameEl = document.getElementById('uploadedAppName');
@@ -1101,12 +1108,13 @@ document.addEventListener('DOMContentLoaded', () => {
         bodyEl?.classList.remove('footer-hidden');
         // Hide sidebar when cache is cleared
         sidebarEl?.classList.add('hidden');
+        closeSidebar();
         setStatus('Cache cleared');
       } catch (err) {
         console.error(err);
         setStatus('Failed to clear cache');
       } finally {
-        progressEl.classList.add('hidden');
+        progressContainer?.classList.add('hidden');
       }
     });
   }
@@ -1117,13 +1125,18 @@ document.addEventListener('DOMContentLoaded', () => {
       setStatus('Ready');
       return;
     }
-    const progressEl = document.getElementById('uploadProgress');
-    progressEl.classList.remove('hidden');
-    progressEl.value = 25;
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressPercent = document.getElementById('progressPercent');
+    
+    progressContainer?.classList.remove('hidden');
+    if (progressBarFill) progressBarFill.style.width = '25%';
+    if (progressPercent) progressPercent.textContent = '25%';
     setStatus('Restoring previous session…');
     try {
       const rec = await loadLastState();
-      progressEl.value = 60;
+      if (progressBarFill) progressBarFill.style.width = '60%';
+      if (progressPercent) progressPercent.textContent = '60%';
       if (rec && Array.isArray(rec.objects) && rec.objects.length) {
         state.objects = rec.objects;
         state.filename = rec.filename || '(cached)';
@@ -1132,7 +1145,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTypeSidebar(state.groups);
         const firstType = state.groups[0]?.type;
         if (firstType){ selectType(firstType); } else { selectType(''); }
-        progressEl.value = 100;
+        if (progressBarFill) progressBarFill.style.width = '100%';
+        if (progressPercent) progressPercent.textContent = '100%';
         setStatus(`Restored ${state.objects.length} symbols from ${state.filename ? ` (${state.filename})` : ''}`);
         // Hide landing overlay when we have a restored session
         landingOverlayEl?.classList.add('hidden');
@@ -1153,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Auto-restore failed:', err);
       setStatus('Ready');
     } finally {
-      progressEl.classList.add('hidden');
+      progressContainer?.classList.add('hidden');
     }
   })();
 
