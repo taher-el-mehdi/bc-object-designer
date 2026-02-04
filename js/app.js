@@ -3,7 +3,7 @@ import { loadReportLayout, renderLayoutPreview } from './layoutViewer.js';
 import { renderRDLPreview } from './previewRDL.js';
 import { showERDiagramAll } from './er-diagram.js';
 import { APP_VERSION } from './version.js';
-import { saveLastState, loadLastState, clearLastState, storageSupported } from './storage.js';
+import { saveLastState, loadLastState, clearLastState, storageSupported, storeSourceFilesFromZip, getSourceForObject } from './storage.js';
 import { generatePseudoAL } from './alsyntax.js';
 
 // Entry point for the client-side AL Explorer
@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Open code viewer for selected object
-  function openCodeForObject(type, id){
+  async function openCodeForObject(type, id){
     const obj = findObject(type, id);
     highlightSelectedRow(type, id);
     if (!obj){
@@ -501,19 +501,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     state.currentObject = obj;
     codeTitleEl.textContent = `${obj.type || type}${obj.id!=null?` #${obj.id}`:''}${obj.name?` · ${obj.name}`:''}`;
+    const AppId =  state.appInfo.AppId;
+    // Try to load source: 1) from cached sourceText, 2) from IndexedDB, 3) generate pseudo
     if (obj.sourceText){
       hideNoSourceMsg();
       setCodeContent(String(obj.sourceText));
     } else {
-      const pseudo = generatePseudoAL(obj);
-      if (pseudo) {
-        hideNoSourceMsg();
-        setCodeContent(pseudo + '\n\n// Note: Full source requires ShowMyCode=true in the extension.');
-      } else {
-        setCodeContent('');
-        showNoSourceMsg();
+      // Attempt to load from IndexedDB
+      setCodeContent('// Loading source...');
+      try {
+        const source = await getSourceForObject(obj.type, obj.id, obj.refSrc, obj.name);
+        
+        if (source) {
+          obj.sourceText = source; // Cache it in memory
+          hideNoSourceMsg();
+          setCodeContent(source);
+        } else {
+          // Fall back to pseudo code
+          const pseudo = generatePseudoAL(obj);
+          if (pseudo) {
+            hideNoSourceMsg();
+            setCodeContent(pseudo + '\n\n// Note: Full source requires ShowMyCode=true in the extension.');
+          } else {
+            setCodeContent('');
+            showNoSourceMsg();
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load source from IndexedDB:', err);
+        const pseudo = generatePseudoAL(obj);
+        if (pseudo) {
+          hideNoSourceMsg();
+          setCodeContent(pseudo + '\n\n// Note: Full source requires ShowMyCode=true in the extension.');
+        } else {
+          setCodeContent('');
+          showNoSourceMsg();
+        }
       }
     }
+    //  else {
+    //   // No appId, use pseudo code
+    //   const pseudo = generatePseudoAL(obj);
+    //   if (pseudo) {
+    //     hideNoSourceMsg();
+    //     setCodeContent(pseudo + '\n\n// Note: Full source requires ShowMyCode=true in the extension.');
+    //   } else {
+    //     setCodeContent('');
+    //     showNoSourceMsg();
+    //   }
+    // }
     showCodePanel();
     // Scroll to top for new selection
     codeContentEl.scrollTop = 0;
@@ -941,6 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       state.objects = Array.isArray(objects) ? objects : [];
       state.filename = file.name;
+      
       if (!state.objects.length){
         renderTypeSidebar([]);
         renderObjectList('');
@@ -949,6 +986,16 @@ document.addEventListener('DOMContentLoaded', () => {
         setStatus('No symbols found in package');
         return;
       }
+      
+      // Store source files in IndexedDB for fast retrieval
+      setStatus('Storing source files…');
+      try {
+        const fileCount = await storeSourceFilesFromZip(arrayBuf);
+        console.log(`Stored ${fileCount} source files in IndexedDB`);
+      } catch (err) {
+        console.warn('Failed to store source files:', err);
+      }
+      
       state.groups = groupByType(state.objects);
       renderTypeSidebar(state.groups);
       const firstType = state.groups[0]?.type;
@@ -1020,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
       progressEl.value = 0;
       try {
         await clearLastState();
-        state = { objects: [], groups: [], filename: '', selectedType: '' };
+        state = { objects: [], groups: [], filename: '', selectedType: '', appInfo: null, currentSourceText: '', searchQuery: '', searchActive: false, currentObject: null, currentLayout: null, layoutViewMode: 'visual' };
         if (typesSidebarEl) typesSidebarEl.innerHTML = 'Load a .app package to begin…';
         renderObjectList('');
         // Toggle settings button
