@@ -38,7 +38,12 @@
     <div class="topbar-left">
       <button id="toggleSidebarBtn" class="tbarbtn outline" title="Toggle sidebar" aria-label="Toggle object types">☰</button>
       <h1 class="app-title" aria-label="Application title">BC object designer</h1>
-      <progress id="uploadProgress" class="progress hidden" max="100" value="0" style="visibility: hidden;"></progress>
+      <div id="progressContainer" class="progress-container hidden">
+        <div class="progress-bar">
+          <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+        <span id="progressPercent" class="progress-percent">0%</span>
+      </div>
       <span id="status" class="status">No symbols loaded</span>
     </div>
     <div class="topbar-center">

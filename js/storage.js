@@ -131,8 +131,9 @@ export async function clearLastState() {
 /**
  * Extract and store all .al source files from ZIP to IndexedDB
  * @param {ArrayBuffer} zipBuffer - The ZIP file buffer
+ * @param {Function} onProgress - Optional callback for progress updates (progress, current, total)
  */
-export async function storeSourceFilesFromZip(zipBuffer) {
+export async function storeSourceFilesFromZip(zipBuffer, onProgress) {
   try {
     const jszip = new JSZip();
     const zip = await jszip.loadAsync(zipBuffer);
@@ -142,8 +143,15 @@ export async function storeSourceFilesFromZip(zipBuffer) {
     
     // Read all file contents first (before opening transaction)
     const fileContents = [];
-    for (const file of alFiles) {
+    const totalFiles = alFiles.length;
+    for (let i = 0; i < alFiles.length; i++) {
+      const file = alFiles[i];
       try {
+        // Report progress during reading phase (0-50%)
+        if (onProgress && totalFiles > 0) {
+          const readProgress = ((i / totalFiles) * 50);
+          onProgress(readProgress, i, totalFiles);
+        }
         const content = await file.async('text');
         const cleanContent = content.replace(/^\uFEFF/, ''); // Strip BOM
         
@@ -176,8 +184,15 @@ export async function storeSourceFilesFromZip(zipBuffer) {
     const tx = db.transaction(SOURCE_FILES_STORE, 'readwrite');
     const store = tx.objectStore(SOURCE_FILES_STORE);
     
+    let stored = 0;
     for (const record of fileContents) {
       store.put(record);
+      stored++;
+      // Report progress during storage phase (50-100%)
+      if (onProgress && fileContents.length > 0) {
+        const storeProgress = 50 + ((stored / fileContents.length) * 50);
+        onProgress(storeProgress, stored, fileContents.length);
+      }
     }
     
     await new Promise((resolve, reject) => {

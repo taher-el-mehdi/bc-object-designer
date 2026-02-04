@@ -99,13 +99,63 @@ body {
 .topbar h1.app-title { font-size: 14px; font-weight: 600; margin: 0; }
 .status { color: var(--muted); font-size: 12px; }
 /* Upload progress */
-.progress { width: 200px; height: 8px; }
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+}
+.progress-container.hidden {
+  display: none;
+}
+.progress-bar {
+  flex: 1;
+  height: 20px;
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  width: 0%;
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.progress-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 42px;
+  text-align: right;
+}
 .topbar-left { display: flex; align-items: center; gap: 12px; }
 .topbar-center { flex: 1 1 auto; display: flex; justify-content: center; align-items: center; }
 .uploaded-name { font-weight: 600; color: var(--text); }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
-@media (prefers-color-scheme: dark) { .progress { accent-color: var(--primary-600); } }
-@media (prefers-color-scheme: light) { .progress { accent-color: var(--primary); } }
 
 /* App info badges */
 .appinfo { display: flex; align-items: center; gap: 8px; margin-left: 0; }

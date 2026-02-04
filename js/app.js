@@ -943,10 +943,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Reveal sidebar when processing begins
     sidebarEl?.classList.remove('hidden');
 
-    const progressEl = document.getElementById('uploadProgress');
-    const showProgress = () => { progressEl.classList.remove('hidden'); progressEl.value = 0; };
-    const hideProgress = () => { progressEl.classList.add('hidden'); };
-    const setProgress = (pct) => { progressEl.value = Math.max(0, Math.min(100, Math.round(pct))); };
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBarFill = document.getElementById('progressBarFill');
+    const progressPercent = document.getElementById('progressPercent');
+    const showProgress = () => { 
+      progressContainer?.classList.remove('hidden'); 
+      setProgress(0); 
+    };
+    const hideProgress = () => { 
+      progressContainer?.classList.add('hidden'); 
+    };
+    const setProgress = (pct) => { 
+      const value = Math.max(0, Math.min(100, Math.round(pct)));
+      if (progressBarFill) progressBarFill.style.width = `${value}%`;
+      if (progressPercent) progressPercent.textContent = `${value}%`;
+    };
 
     setStatus('Reading package…');
     showProgress();
@@ -959,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onabort = () => reject(new Error('File read aborted'));
         reader.onprogress = (evt) => {
           if (evt.lengthComputable) {
-            const pct = (evt.loaded / evt.total) * 100;
+            const pct = (evt.loaded / evt.total) * 50; // Reading is 0-50%
             setProgress(pct);
           }
         };
@@ -970,7 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Save raw buffer for layout extraction later
       state.appArrayBuffer = arrayBuf;
 
-      setProgress(100);
+      setProgress(50);
       setStatus('Parsing symbols…');
       const { raw, objects } = await parseAppFile(arrayBuf);
       updateAppInfo(raw);
@@ -988,9 +999,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Store source files in IndexedDB for fast retrieval
-      setStatus('Storing source files…');
+      setProgress(50); // Parsing complete, now storing
+      setStatus('Processing source files…');
       try {
-        const fileCount = await storeSourceFilesFromZip(arrayBuf);
+        const fileCount = await storeSourceFilesFromZip(arrayBuf, (progress, current, total) => {
+          setProgress(50 + (progress / 2)); // Map 0-100% to 50-100%
+          if (progress < 50) {
+            setStatus(`Reading source files… (${current}/${total})`);
+          } else {
+            setStatus(`Storing source files… (${current}/${total})`);
+          }
+        });
+        setProgress(100);
         console.log(`Stored ${fileCount} source files in IndexedDB`);
       } catch (err) {
         console.warn('Failed to store source files:', err);
