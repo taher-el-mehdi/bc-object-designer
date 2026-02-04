@@ -1,4 +1,0 @@
-- [ ] enable search for ID ranges: `50000..50100` (or `..50000`, `50000..`, `>=50000`, `<=50100`).
-- [ ] Focus search: `Ctrl+K` or `/`.
-- [ ] Close panels/modals: `Esc`.
-- [ ] Fullscreen ER/Layout: `F11` (toggle) or the modal button.
