@@ -47,10 +47,42 @@ function put(db, store, value) {
   });
 }
 
-/** Generate composite key from object type and id */
-function makeObjectKey(type, id) {
-  if (!type || id == null) return null;
-  return `${String(type).toLowerCase()}_${id}`;
+/** Sanitize name for use in storage keys */
+function sanitizeName(name) {
+  if (!name) return null;
+  // Remove quotes and non-alphanumeric characters except underscores
+  return String(name).replace(/["']/g, '').replace(/[^a-zA-Z0-9_]/g, '_').toLowerCase();
+}
+
+/** Map object type names to their AL file equivalents */
+function normalizeObjectType(type) {
+  if (!type) return null;
+  const typeMap = {
+    'enumtype': 'enum',
+    'enumextensiontype': 'enumextension',
+    // Add more mappings if needed
+  };
+  const lowerType = String(type).toLowerCase();
+  return typeMap[lowerType] || lowerType;
+}
+
+/** Generate composite key from object type and id (or name for objects without IDs) */
+function makeObjectKey(type, id, name) {
+  if (!type) return null;
+  
+  // Normalize type first (e.g., EnumType -> enum)
+  const normalizedType = normalizeObjectType(type);
+  
+  // For objects without IDs, use type_name
+  const typesWithoutId = ['controladdin', 'interface', 'profile'];
+  if (typesWithoutId.includes(normalizedType)) {
+    const safeName = sanitizeName(name);
+    if (!safeName) return null;
+    return `${normalizedType}_${safeName}`;
+  }
+  // For normal objects, use type_id
+  if (id == null) return null;
+  return `${normalizedType}_${id}`;
 }
 
 /** Get a record by key */
@@ -157,20 +189,47 @@ export async function storeSourceFilesFromZip(zipBuffer, onProgress) {
         
         // Extract object type and id from AL file content
         const typeMatch = cleanContent.match(/^\s*(table|page|codeunit|report|query|xmlport|enum|enumextension|tableextension|pageextension|reportextension|profile|permissionset|entitlement|controladdin|interface|dotnet)\s+/im);
-        const idMatch = cleanContent.match(/^\s*(?:table|page|codeunit|report|query|xmlport|enum|enumextension|tableextension|pageextension|reportextension|profile|permissionset|entitlement|controladdin|interface|dotnet)\s+(\d+)\s+/im);
+        const idMatch = cleanContent.match(/^\s*(?:table|page|codeunit|report|query|xmlport|enum|enumextension|tableextension|pageextension|reportextension)\s+(\d+)\s+/im);
         
+        // Improved name matching - handle multiple formats:
+        // 1. controladdin "My Name"
+        // 2. controladdin MyName
+        // 3. table 50000 "My Table"
+        // 4. table 50000 MyTable
+        let objName = null;
         const objType = typeMatch ? typeMatch[1].toLowerCase() : null;
         const objId = idMatch ? idMatch[1] : null;
         
-        // Create composite key using type_id, fallback to filename if parsing fails
+        if (objType) {
+          // Try to match quoted names first (most reliable)
+          const quotedNameMatch = cleanContent.match(/^\s*(?:table|page|codeunit|report|query|xmlport|enum|enumextension|tableextension|pageextension|reportextension|profile|permissionset|entitlement|controladdin|interface|dotnet)\s+(?:\d+\s+)?"([^"]+)"/im);
+          if (quotedNameMatch) {
+            objName = quotedNameMatch[1];
+          } else {
+            // Try single-quoted names
+            const singleQuotedMatch = cleanContent.match(/^\s*(?:table|page|codeunit|report|query|xmlport|enum|enumextension|tableextension|pageextension|reportextension|profile|permissionset|entitlement|controladdin|interface|dotnet)\s+(?:\d+\s+)?'([^']+)'/im);
+            if (singleQuotedMatch) {
+              objName = singleQuotedMatch[1];
+            } else {
+              // Try unquoted names (identifier followed by space or {)
+              const unquotedMatch = cleanContent.match(/^\s*(?:table|page|codeunit|report|query|xmlport|enum|enumextension|tableextension|pageextension|reportextension|profile|permissionset|entitlement|controladdin|interface|dotnet)\s+(?:\d+\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*[{\s]/im);
+              if (unquotedMatch) {
+                objName = unquotedMatch[1];
+              }
+            }
+          }
+        }
+        
+        // Create composite key using type_id or type_name, fallback to filename if parsing fails
         const basename = file.name.split(/[\\\/]/).pop().toLowerCase();
-        const compositeKey = objType && objId ? makeObjectKey(objType, objId) : basename;
+        const compositeKey = makeObjectKey(objType, objId, objName) || basename;
         
         fileContents.push({
           key: compositeKey,
           filename: file.name,
           objectType: objType,
           objectId: objId,
+          objectName: objName,
           content: cleanContent,
           storedAt: Date.now()
         });
@@ -210,23 +269,29 @@ export async function storeSourceFilesFromZip(zipBuffer, onProgress) {
 }
 
 /**
- * Get a source file from IndexedDB by type and id
+ * Get a source file from IndexedDB by type and id (or name for objects without IDs)
  * @param {string} type - Object type (e.g., "table", "page")
  * @param {number|string} id - Object ID
+ * @param {string} name - Object name (for objects without IDs)
  * @param {string} filename - Optional fallback filename for backward compatibility
  */
-export async function getSourceFile(type, id, filename) {
+export async function getSourceFile(type, id, name, filename) {
   try {
     const db = await openDB();
     
-    // Try composite key first (type_id)
-    if (type && id != null) {
-      const compositeKey = makeObjectKey(type, id);
-      console.log('Looking up source by composite key:', compositeKey);
-      const rec = await get(db, SOURCE_FILES_STORE, compositeKey);
-      if (rec?.content) {
-        db.close();
-        return rec.content;
+    // Try composite key first (type_id or type_name)
+    if (type && (id != null || name)) {
+      const compositeKey = makeObjectKey(type, id, name);
+      if (compositeKey) {
+        console.log('Looking up source by composite key:', compositeKey, '(type:', type, 'id:', id, 'name:', name, ')');
+        const rec = await get(db, SOURCE_FILES_STORE, compositeKey);
+        if (rec?.content) {
+          db.close();
+          console.log('✓ Found source for:', compositeKey);
+          return rec.content;
+        } else {
+          console.log('✗ Not found for key:', compositeKey);
+        }
       }
     }
     
@@ -250,25 +315,25 @@ export async function getSourceFile(type, id, filename) {
 }
 
 /**
- * Get source file by object type, id, and optional fallbacks
+ * Get source file by object type, id, name, and optional fallbacks
  * @param {string} type - Object type (e.g., "table", "page")
  * @param {number|string} id - Object ID
  * @param {string} refSrc - Optional reference source filename for fallback
- * @param {string} objName - Optional object name for fallback matching
+ * @param {string} objName - Object name (required for objects without IDs, used as fallback for others)
  */
 export async function getSourceForObject(type, id, refSrc, objName) {
-  // Try type + id composite key first (most reliable)
-  if (type && id != null) {
-    const content = await getSourceFile(type, id);
+  // Try type + id/name composite key first (most reliable)
+  if (type && (id != null || objName)) {
+    const content = await getSourceFile(type, id, objName);
     if (content) {
-      console.log(`Retrieved source for ${type}_${id}:`, 'FOUND');
+      console.log(`Retrieved source for ${type}_${id || objName}:`, 'FOUND');
       return content;
     }
   }
   
   // Try refSrc as fallback
   if (refSrc) {
-    const content = await getSourceFile(null, null, refSrc);
+    const content = await getSourceFile(null, null, null, refSrc);
     if (content) {
       console.log('Retrieved source via refSrc:', refSrc, 'FOUND');
       return content;
@@ -278,7 +343,7 @@ export async function getSourceForObject(type, id, refSrc, objName) {
   // Fallback to name-based matching
   if (objName) {
     const nameKey = objName.replace(/"/g, '') + '.al';
-    const content = await getSourceFile(null, null, nameKey);
+    const content = await getSourceFile(null, null, null, nameKey);
     console.log('Retrieved source via name:', nameKey, content ? 'FOUND' : 'NOT FOUND');
     if (content) return content;
   }

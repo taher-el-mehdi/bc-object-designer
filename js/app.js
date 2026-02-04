@@ -217,6 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const thId = document.createElement('th'); thId.textContent = 'ID'; thId.className = 'col-id';
       const thName = document.createElement('th'); thName.textContent = 'Name'; thName.className = 'col-name';
       tr.appendChild(thType); tr.appendChild(thId); tr.appendChild(thName);
+    } else if (mode === 'no-id') {
+      // For objects without IDs (ControlAddIn, Interface, Profile)
+      const thName = document.createElement('th'); thName.textContent = 'Name'; thName.className = 'col-name';
+      tr.appendChild(thName);
     } else {
       const thId = document.createElement('th'); thId.textContent = 'ID'; thId.className = 'col-id';
       const thName = document.createElement('th'); thName.textContent = 'Name'; thName.className = 'col-name';
@@ -298,8 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const tdId = document.createElement('td'); tdId.textContent = o.id != null ? String(o.id) : '';
       const tdName = document.createElement('td'); tdName.textContent = o.name || '';
       tr.appendChild(tdType); tr.appendChild(tdId); tr.appendChild(tdName);
-      tr.addEventListener('click', () => openCodeForObject(o.type, o.id));
-      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter') openCodeForObject(o.type, o.id); });
+      tr.addEventListener('click', () => openCodeForObject(o.type, o.id, o.name));
+      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter') openCodeForObject(o.type, o.id, o.name); });
       frag.appendChild(tr);
     }
     tbody.appendChild(frag);
@@ -355,9 +359,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = objectTableEl?.querySelector('tbody');
     if (!tbody || !Array.isArray(state.groups)) return;
     tbody.innerHTML = '';
-    setTableHeaders('normal');
+    
     const group = state.groups.find(g => g.type === type);
     selectedTypeNameEl.textContent = group ? group.type : 'No type selected';
+    
+    // Check if this type doesn't use IDs
+    const typesWithoutId = ['ControlAddIn', 'Interface', 'Profile'];
+    const hasNoId = typesWithoutId.includes(type);
+    
+    setTableHeaders(hasNoId ? 'no-id' : 'normal');
+    
     if (!group || !Array.isArray(group.items) || group.items.length === 0){
       objectTableEl.classList.add('hidden');
       emptyListMsgEl.classList.remove('hidden');
@@ -366,28 +377,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     objectTableEl.classList.remove('hidden');
     emptyListMsgEl.classList.add('hidden');
-    // Sort items by ID ascending (numeric); non-numeric IDs go last
+    
+    // Sort items
     const items = [...group.items].sort((a, b) => {
+      if (hasNoId) {
+        // Sort by name for objects without IDs
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      // Sort by ID for normal objects
       const ai = typeof a.id === 'number' ? a.id : Number(a.id);
       const bi = typeof b.id === 'number' ? b.id : Number(b.id);
       const av = Number.isFinite(ai) ? ai : Number.POSITIVE_INFINITY;
       const bv = Number.isFinite(bi) ? bi : Number.POSITIVE_INFINITY;
       return av - bv;
     });
+    
     const frag = document.createDocumentFragment();
     for (const o of items){
       const tr = document.createElement('tr');
       tr.tabIndex = 0;
       tr.dataset.type = group.type;
       tr.dataset.id = String(o.id ?? '');
-      const tdId = document.createElement('td'); tdId.textContent = o.id != null ? String(o.id) : '';
-      const tdName = document.createElement('td'); tdName.textContent = o.name || '';
-      tr.appendChild(tdId); tr.appendChild(tdName);
+      tr.dataset.name = o.name || '';
+      
+      if (hasNoId) {
+        // Only name column for objects without IDs
+        const tdName = document.createElement('td'); tdName.textContent = o.name || '';
+        tr.appendChild(tdName);
+      } else {
+        // ID and name columns for normal objects
+        const tdId = document.createElement('td'); tdId.textContent = o.id != null ? String(o.id) : '';
+        const tdName = document.createElement('td'); tdName.textContent = o.name || '';
+        tr.appendChild(tdId); tr.appendChild(tdName);
+      }
 
-      // No layout button on list page as requested
-      tr.addEventListener('click', () => openCodeForObject(group.type, o.id));
+      tr.addEventListener('click', () => openCodeForObject(group.type, o.id, o.name));
       tr.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') openCodeForObject(group.type, o.id);
+        if (e.key === 'Enter') openCodeForObject(group.type, o.id, o.name);
       });
       frag.appendChild(tr);
     }
@@ -412,10 +438,17 @@ document.addEventListener('DOMContentLoaded', () => {
     viewERAllBtn?.classList.toggle('hidden', String(type) !== 'Table');
   }
 
-  // Find object by type and id
-  function findObject(type, id){
+  // Find object by type and id (or name for objects without IDs)
+  function findObject(type, id, name){
     const group = state.groups.find(g => g.type === type);
     if (!group) return undefined;
+    
+    // For objects without IDs, find by name
+    const typesWithoutId = ['ControlAddIn', 'Interface', 'Profile'];
+    if (typesWithoutId.includes(type) && name) {
+      return group.items.find(x => x.name === name);
+    }
+    
     return group.items.find(x => x.id === id);
   }
 
@@ -492,8 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Open code viewer for selected object
-  async function openCodeForObject(type, id){
-    const obj = findObject(type, id);
+  async function openCodeForObject(type, id, name){
+    const obj = findObject(type, id, name);
     highlightSelectedRow(type, id);
     if (!obj){
       codeTitleEl.textContent = 'Object not found';
