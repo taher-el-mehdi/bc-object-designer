@@ -83,13 +83,25 @@ body {
   padding: 10px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: fixed;
+  top: var(--banner-h);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: var(--topbar-h);
+  box-sizing: border-box;
 }
 /* Open-source banner */
-.os-banner { background: var(--hover); border-bottom: 1px solid var(--border); }
-.os-banner-inner { height: var(--banner-h); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; }
+.os-banner { 
+  background: var(--hover); 
+  border-bottom: 1px solid var(--border); 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  z-index: 101; 
+}
+.os-banner-inner { height: var(--banner-h); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; box-sizing: border-box; }
 .os-text { color: var(--muted); font-weight: 600; }
 .os-link { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-600); text-decoration: none; font-weight: 600; }
 .os-link:hover { text-decoration: underline; }
